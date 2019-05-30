@@ -30,6 +30,9 @@ Here is a short example using Not Enough Standards:
 
 #### main.cpp
 ```cpp
+#include <iostream>
+#include <nes/process.hpp>
+
 int main()
 {
     //nes::this_process namespace can be used to modify current process or get informations about it.
@@ -54,6 +57,9 @@ int main()
 #### other.cpp
 
 ```cpp
+#include <iostream>
+#include <nes/process.hpp>
+
 int main(int argc, char** argv)
 {
     std::cout << "Hello world! I'm Other!\n";
