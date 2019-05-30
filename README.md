@@ -14,7 +14,7 @@ Not Enough Standards works on any posix compliant system, and also on Windows.
 
 ## Installation
 
-Not Enough Standards require a C++17 compiler.
+Not Enough Standards requires a C++17 compiler.
 
 As any header only library, Not Enough Standards is designed to be directly included in your project, by copying the files you need in your project's directory.
 
