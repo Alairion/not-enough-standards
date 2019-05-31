@@ -58,16 +58,16 @@ public:
     using native_handle_type = HINSTANCE;
 
 public:
-    constexpr shared_library() noexcept = default;
+    constexpr shared_library() = default;
 
-    shared_library(load_current_t)
+    explicit shared_library(load_current_t)
     {
         m_handle = GetModuleHandleW(nullptr);
         if(!m_handle)
             throw std::runtime_error{"Can not load current binary file. " + get_error_message()};
     }
 
-    shared_library(const std::string& path)
+    explicit shared_library(const std::string& path)
     {
         assert(!std::empty(path) && "nes::shared_library::shared_library called with empty path.");
 
@@ -101,12 +101,19 @@ public:
         return *this;
     }
 
-    template<typename FuncT>
-    FuncT* load(const std::string& symbol) const noexcept
+    template<typename Func, typename = std::enable_if_t<std::is_pointer_v<Func> && std::is_function_v<std::remove_pointer_t<Func>>>>
+    Func load(const std::string& symbol) const noexcept
     {
+        assert(!std::empty(symbol) && "nes::shared_library::load called with an empty symbol name.");
         assert(m_handle && "nes::shared_library::load called with invalid handle.");
 
-        return reinterpret_cast<FuncT*>(reinterpret_cast<void*>(GetProcAddress(m_handle, std::data(symbol))));
+        return reinterpret_cast<Func>(reinterpret_cast<void*>(GetProcAddress(m_handle, std::data(symbol))));
+    }
+
+    template<typename Func, typename = std::enable_if_t<std::is_function_v<Func>>>
+    Func* load(const std::string& symbol) const noexcept
+    {
+        return load<Func*>(symbol);
     }
 
     native_handle_type native_handle() const noexcept
@@ -163,16 +170,16 @@ public:
     using native_handle_type = void*;
 
 public:
-    constexpr shared_library() noexcept = default;
+    constexpr shared_library() = default;
 
-    shared_library(load_current_t)
+    explicit shared_library(load_current_t)
     {
         m_handle = dlopen(nullptr, RTLD_NOW);
         if(!m_handle)
             throw std::runtime_error{"Can not load current binary file. " + std::string{dlerror()}};
     }
 
-    shared_library(const std::string& path)
+    explicit shared_library(const std::string& path)
     {
         assert(!std::empty(path) && "nes::shared_library::shared_library called with empty path.");
 
@@ -202,12 +209,19 @@ public:
         return *this;
     }
 
-    template<typename FuncT>
-    FuncT* load(const std::string& symbol) const noexcept
+    template<typename Func, typename = std::enable_if_t<std::is_pointer_v<Func> && std::is_function_v<std::remove_pointer_t<Func>>>>
+    Func load(const std::string& symbol) const noexcept
     {
+        assert(!std::empty(symbol) && "nes::shared_library::load called with an empty symbol name.");
         assert(m_handle && "nes::shared_library::load called with invalid handle.");
 
         return reinterpret_cast<FuncT*>(dlsym(m_handle, std::data(symbol)));
+    }
+
+    template<typename Func, typename = std::enable_if_t<std::is_function_v<Func>>>
+    Func* load(const std::string& symbol) const noexcept
+    {
+        return load<Func*>(symbol);
     }
 
     native_handle_type native_handle() const noexcept
