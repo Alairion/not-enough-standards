@@ -88,7 +88,7 @@ public:
         open(name, mode);
     }
 
-    ~basic_pipe_streambuf()
+    virtual ~basic_pipe_streambuf()
     {
         close();
     }
@@ -302,7 +302,8 @@ public:
         open(name, mode);
     }
 
-    ~basic_pipe_istream() = default;
+    virtual ~basic_pipe_istream() = default;
+
     basic_pipe_istream(const basic_pipe_istream&) = delete;
     basic_pipe_istream& operator=(const basic_pipe_istream&) = delete;
 
@@ -382,7 +383,8 @@ public:
         open(name, mode);
     }
 
-    ~basic_pipe_ostream() = default;
+    virtual ~basic_pipe_ostream() = default;
+
     basic_pipe_ostream(const basic_pipe_ostream&) = delete;
     basic_pipe_ostream& operator=(const basic_pipe_ostream&) = delete;
 
@@ -497,7 +499,7 @@ public:
         open(name, mode);
     }
 
-    ~basic_pipe_streambuf()
+    virtual ~basic_pipe_streambuf()
     {
         close();
     }
@@ -675,7 +677,8 @@ public:
         open(name, mode);
     }
 
-    ~basic_pipe_istream() = default;
+    virtual ~basic_pipe_istream() = default;
+
     basic_pipe_istream(const basic_pipe_istream&) = delete;
     basic_pipe_istream& operator=(const basic_pipe_istream&) = delete;
 
@@ -755,7 +758,8 @@ public:
         open(name, mode);
     }
 
-    ~basic_pipe_ostream() = default;
+    virtual ~basic_pipe_ostream() = default;
+
     basic_pipe_ostream(const basic_pipe_ostream&) = delete;
     basic_pipe_ostream& operator=(const basic_pipe_ostream&) = delete;
 
