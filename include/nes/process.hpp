@@ -386,13 +386,6 @@ public:
         return *this;
     }
 
-    void detach()
-    {
-        assert(joinable() && "nes::process::detach() called with joinable() returning false.");
-
-        close_process();
-    }
-
     void join()
     {
         assert(joinable() && "nes::process::join() called with joinable() returning false.");
@@ -421,6 +414,13 @@ public:
             throw std::runtime_error{"Can not get the state of the process. " + get_error_message()};
 
         return result == WAIT_TIMEOUT;
+    }
+
+    void detach()
+    {
+        assert(joinable() && "nes::process::detach() called with joinable() returning false.");
+
+        close_process();
     }
 
     bool kill()
@@ -527,7 +527,7 @@ private:
 namespace this_process
 {
 
-inline process::id get_id()
+inline process::id get_id() noexcept
 {
     return process::id{GetCurrentProcessId()};
 }
@@ -881,12 +881,6 @@ public:
         return *this;
     }
 
-    void detach()
-    {
-        assert(joinable() && "nes::process::detach() called with joinable() returning false.");
-        m_id = -1;
-    }
-
     void join()
     {
         assert(joinable() && "nes::process::join() called with joinable() returning false.");
@@ -907,6 +901,12 @@ public:
     bool active() const
     {
         return ::kill(m_id, 0) != ESRCH;
+    }
+
+    void detach()
+    {
+        assert(joinable() && "nes::process::detach() called with joinable() returning false.");
+        m_id = -1;
     }
 
     bool kill()
@@ -964,7 +964,7 @@ private:
 namespace this_process
 {
 
-inline process::id get_id()
+inline process::id get_id() noexcept
 {
     return process::id{getpid()};
 }

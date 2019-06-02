@@ -48,6 +48,7 @@
 #include <istream>
 #include <ostream>
 #include <memory>
+#include <cassert>
 
 #if defined(NES_WIN32_PIPE)
 
@@ -60,12 +61,8 @@ template<typename CharT, typename Traits>
 class basic_pipe_istream;
 template<typename CharT, typename Traits>
 class basic_pipe_ostream;
-template<typename CharT, typename Traits>
-class basic_pipe_iostream;
 template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 std::pair<basic_pipe_istream<CharT, Traits>, basic_pipe_ostream<CharT, Traits>> make_anonymous_pipe();
-template<typename CharT = char, typename Traits = std::char_traits<CharT>>
-std::pair<basic_pipe_iostream<CharT, Traits>, basic_pipe_iostream<CharT, Traits>> make_anonymous_bidirectional_pipe();
 
 template<typename CharT, typename Traits = std::char_traits<CharT>>
 class basic_pipe_streambuf : public std::basic_streambuf<CharT, Traits>
@@ -101,8 +98,7 @@ public:
 
     basic_pipe_streambuf(basic_pipe_streambuf&& other) noexcept
     :parent_type{std::move(other)}
-    ,m_input_buffer{other.m_input_buffer}
-    ,m_output_buffer{other.m_output_buffer}
+    ,m_buffer{other.m_buffer}
     ,m_handle{std::exchange(other.m_handle, INVALID_HANDLE_VALUE)}
     ,m_mode{std::exchange(other.m_mode, std::ios_base::openmode{})}
     {
@@ -112,8 +108,7 @@ public:
     basic_pipe_streambuf& operator=(basic_pipe_streambuf&& other) noexcept
     {
         parent_type::operator=(std::move(other));
-        m_input_buffer = other.m_input_buffer;
-        m_output_buffer = other.m_output_buffer;
+        m_buffer = other.m_buffer;
         m_handle = std::exchange(other.m_handle, INVALID_HANDLE_VALUE);
         m_mode = std::exchange(other.m_mode, std::ios_base::openmode{});
 
@@ -122,25 +117,19 @@ public:
 
     void open(const std::string& name, std::ios_base::openmode mode)
     {
+        assert(!((mode & std::ios_base::in) && (mode & std::ios_base::out)) && "nes::basic_pipe_streambuf::open called with mode = std::ios_base::in | std::ios_base::out.");
+
         close();
 
         const auto native_name{to_wide(pipe_root + name)};
-        DWORD native_mode{};
-        if(mode & std::ios_base::in)
-            native_mode |= GENERIC_READ;
-        if(mode & std::ios_base::out)
-            native_mode |= GENERIC_WRITE;
+        DWORD native_mode{mode & std::ios_base::in ? GENERIC_READ : GENERIC_WRITE};
 
         HANDLE handle = CreateFileW(std::data(native_name), native_mode, 0, nullptr, OPEN_EXISTING, 0, nullptr);
         if(handle == INVALID_HANDLE_VALUE)
         {
             if(GetLastError() == ERROR_FILE_NOT_FOUND)
             {
-                native_mode = 0;
-                if(mode & std::ios_base::in)
-                    native_mode |= PIPE_ACCESS_INBOUND;
-                if(mode & std::ios_base::out)
-                    native_mode |= PIPE_ACCESS_OUTBOUND;
+                native_mode = mode & std::ios_base::in ? PIPE_ACCESS_INBOUND : PIPE_ACCESS_OUTBOUND;
 
                 handle = CreateNamedPipeW(std::data(native_name), native_mode, PIPE_READMODE_BYTE | PIPE_WAIT, 1, buf_size, buf_size, 0, nullptr);
                 if(handle == INVALID_HANDLE_VALUE)
@@ -156,7 +145,7 @@ public:
             }
         }
 
-        parent_type::setp(std::data(m_output_buffer), std::data(m_output_buffer) + buf_size);
+        parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         m_handle = handle;
     }
 
@@ -186,7 +175,7 @@ private:
     :m_handle{handle}
     ,m_mode{mode}
     {
-        parent_type::setp(std::data(m_output_buffer), std::data(m_output_buffer) + buf_size);
+        parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
     }
 
 protected:
@@ -197,10 +186,10 @@ protected:
             const std::ptrdiff_t count{parent_type::pptr() - parent_type::pbase()};
 
             DWORD written{};
-            if(!WriteFile(m_handle, reinterpret_cast<const CHAR*>(std::data(m_output_buffer)), static_cast<DWORD>(count)* sizeof(char_type), &written, nullptr))
+            if(!WriteFile(m_handle, reinterpret_cast<const CHAR*>(std::data(m_buffer)), static_cast<DWORD>(count)* sizeof(char_type), &written, nullptr))
                 return -1;
 
-            parent_type::setp(std::data(m_output_buffer), std::data(m_output_buffer) + buf_size);
+            parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         }
 
         return 0;
@@ -208,13 +197,15 @@ protected:
 
     virtual int_type overflow(int_type c = traits_type::eof()) override
     {
+        assert(m_mode & std::ios_base::out && "Write operation on a read only pipe.");
+
         if(traits_type::eq_int_type(c, traits_type::eof()))
         {
             DWORD written{};
-            if(!WriteFile(m_handle, reinterpret_cast<const CHAR*>(std::data(m_output_buffer)), static_cast<DWORD>(buf_size) * sizeof(char_type), &written, nullptr))
+            if(!WriteFile(m_handle, reinterpret_cast<const CHAR*>(std::data(m_buffer)), static_cast<DWORD>(buf_size) * sizeof(char_type), &written, nullptr))
                 return traits_type::eof();
 
-            parent_type::setp(std::data(m_output_buffer), std::data(m_output_buffer) + buf_size);
+            parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         }
         else
         {
@@ -227,6 +218,8 @@ protected:
 
     virtual std::streamsize xsputn(const char_type* s, std::streamsize count) override
     {
+        assert(m_mode & std::ios_base::out && "Write operation on a read only pipe.");
+
         DWORD written{};
         if(!WriteFile(m_handle, reinterpret_cast<const CHAR*>(s), static_cast<DWORD>(count) * sizeof(char_type), &written, nullptr))
             return 0;
@@ -236,13 +229,15 @@ protected:
 
     virtual int_type underflow() override
     {
+        assert(m_mode & std::ios_base::in && "Read operation on a write only pipe.");
+
         if(parent_type::gptr() == parent_type::egptr())
         {
             DWORD readed{};
-            if(!ReadFile(m_handle, reinterpret_cast<CHAR*>(std::data(m_input_buffer)), static_cast<DWORD>(buf_size * sizeof(char_type)), &readed, nullptr) || readed == 0)
+            if(!ReadFile(m_handle, reinterpret_cast<CHAR*>(std::data(m_buffer)), static_cast<DWORD>(buf_size * sizeof(char_type)), &readed, nullptr) || readed == 0)
                 return traits_type::eof();
 
-            parent_type::setg(std::data(m_input_buffer), std::data(m_input_buffer), std::data(m_input_buffer) + (readed / sizeof(char_type)));
+            parent_type::setg(std::data(m_buffer), std::data(m_buffer), std::data(m_buffer) + (readed / sizeof(char_type)));
         }
 
         return traits_type::to_int_type(*parent_type::gptr());
@@ -250,6 +245,8 @@ protected:
 
     virtual std::streamsize xsgetn(char_type* s, std::streamsize count) override
     {
+        assert(m_mode & std::ios_base::in && "Read operation on a write only pipe.");
+
         DWORD readed{};
         if(!ReadFile(m_handle, reinterpret_cast<CHAR*>(s), static_cast<DWORD>(count) * sizeof(char_type), &readed, nullptr))
             return 0;
@@ -276,8 +273,7 @@ private:
     }
 
 private:
-    std::array<CharT, buf_size> m_input_buffer{};
-    std::array<CharT, buf_size> m_output_buffer{};
+    std::array<CharT, buf_size> m_buffer{};
     HANDLE m_handle{INVALID_HANDLE_VALUE};
     std::ios_base::openmode m_mode{};
 };
@@ -443,86 +439,6 @@ private:
     std::unique_ptr<basic_pipe_streambuf<char_type, traits_type>> m_buffer{std::make_unique<basic_pipe_streambuf<char_type, traits_type>>()};
 };
 
-template<typename CharT, typename Traits = std::char_traits<CharT>>
-class basic_pipe_iostream : public std::basic_iostream<CharT, Traits>
-{
-private:
-    using parent_type = std::basic_iostream<CharT, Traits>;
-
-public:
-    using char_type    = CharT;
-    using traits_type  = Traits;
-    using int_type     = typename Traits::int_type;
-    using pos_type     = typename Traits::pos_type;
-    using off_type     = typename Traits::off_type;
-
-public:
-    constexpr basic_pipe_iostream() = default;
-
-    basic_pipe_iostream(const std::string& name, std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in)
-    :parent_type{}
-    {
-        parent_type::rdbuf(m_buffer.get());
-        open(name, mode);
-    }
-
-    ~basic_pipe_iostream() = default;
-    basic_pipe_iostream(const basic_pipe_iostream&) = delete;
-    basic_pipe_iostream& operator=(const basic_pipe_iostream&) = delete;
-
-    basic_pipe_iostream(basic_pipe_iostream&& other) noexcept
-    :parent_type{std::move(other)}
-    ,m_buffer{}
-    {
-        std::swap(m_buffer, other.m_buffer);
-        parent_type::rdbuf(m_buffer.get());
-    }
-
-    basic_pipe_iostream& operator=(basic_pipe_iostream&& other) noexcept
-    {
-        parent_type::operator=(std::move(other));
-        std::swap(m_buffer, other.m_buffer);
-
-        parent_type::rdbuf(m_buffer.get());
-
-        return *this;
-    }
-
-    void open(const std::string& name, std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in)
-    {
-        m_buffer->open(name, mode);
-        parent_type::clear(m_buffer->is_open() ? std::ios_base::goodbit : std::ios_base::failbit);
-    }
-
-    bool is_open() const noexcept
-    {
-        return m_buffer->is_open();
-    }
-
-    void close()
-    {
-        m_buffer->close();
-    }
-
-    basic_pipe_streambuf<char_type, traits_type>* rdbuf() const
-    {
-        return m_buffer.get();
-    }
-
-private:
-    friend std::pair<basic_pipe_iostream<char_type, traits_type>, basic_pipe_iostream<char_type, traits_type>> make_anonymous_bidirectional_pipe<char_type, traits_type>();
-
-    basic_pipe_iostream(basic_pipe_streambuf<char_type, traits_type> buffer)
-    :parent_type{}
-    ,m_buffer{std::make_unique<basic_pipe_streambuf<char_type, traits_type>>(std::move(buffer))}
-    {
-        parent_type::rdbuf(m_buffer.get());
-    }
-
-private:
-    std::unique_ptr<basic_pipe_streambuf<char_type, traits_type>> m_buffer{std::make_unique<basic_pipe_streambuf<char_type, traits_type>>()};
-};
-
 template<typename CharT, typename Traits>
 std::pair<basic_pipe_istream<CharT, Traits>, basic_pipe_ostream<CharT, Traits>> make_anonymous_pipe()
 {
@@ -536,23 +452,9 @@ std::pair<basic_pipe_istream<CharT, Traits>, basic_pipe_ostream<CharT, Traits>> 
                           basic_pipe_ostream<CharT, Traits>{basic_pipe_streambuf<CharT, Traits>{output, std::ios_base::out}});
 }
 
-template<typename CharT, typename Traits>
-std::pair<basic_pipe_iostream<CharT, Traits>, basic_pipe_iostream<CharT, Traits>> make_anonymous_bidirectional_pipe()
-{
-    HANDLE first{};
-    HANDLE second{};
-
-    if(!CreatePipe(&first, &second, nullptr, 0))
-        throw std::runtime_error{"Can not create pipe"};
-
-    return std::make_pair(basic_pipe_iostream<CharT, Traits>{basic_pipe_streambuf<CharT, Traits>{first,  std::ios_base::in | std::ios_base::out}},
-                          basic_pipe_iostream<CharT, Traits>{basic_pipe_streambuf<CharT, Traits>{second, std::ios_base::in | std::ios_base::out}});
-}
-
 using pipe_streambuf = basic_pipe_streambuf<char>;
 using pipe_istream = basic_pipe_istream<char>;
 using pipe_ostream = basic_pipe_ostream<char>;
-using pipe_iostream = basic_pipe_iostream<char>;
 
 }
 
@@ -568,12 +470,8 @@ template<typename CharT, typename Traits>
 class basic_pipe_istream;
 template<typename CharT, typename Traits>
 class basic_pipe_ostream;
-template<typename CharT, typename Traits>
-class basic_pipe_iostream;
 template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 std::pair<basic_pipe_istream<CharT, Traits>, basic_pipe_ostream<CharT, Traits>> make_anonymous_pipe();
-template<typename CharT = char, typename Traits = std::char_traits<CharT>>
-std::pair<basic_pipe_iostream<CharT, Traits>, basic_pipe_iostream<CharT, Traits>> make_anonymous_bidirectional_pipe();
 
 template<typename CharT, typename Traits = std::char_traits<CharT>>
 class basic_pipe_streambuf : public std::basic_streambuf<CharT, Traits>
@@ -609,8 +507,7 @@ public:
 
     basic_pipe_streambuf(basic_pipe_streambuf&& other) noexcept
     :parent_type{std::move(other)}
-    ,m_input_buffer{other.m_input_buffer}
-    ,m_output_buffer{other.m_output_buffer}
+    ,m_buffer{other.m_buffer}
     ,m_handle{std::exchange(other.m_handle, 0)}
     ,m_mode{std::exchange(other.m_mode, std::ios_base::openmode{})}
     {
@@ -620,8 +517,7 @@ public:
     basic_pipe_streambuf& operator=(basic_pipe_streambuf&& other) noexcept
     {
         parent_type::operator=(std::move(other));
-        m_input_buffer = other.m_input_buffer;
-        m_output_buffer = other.m_output_buffer;
+        m_buffer = other.m_buffer;
         m_handle = std::exchange(other.m_handle, 0);
         m_mode = std::exchange(other.m_mode, std::ios_base::openmode{});
 
@@ -630,26 +526,20 @@ public:
 
     void open(const std::string& name, std::ios_base::openmode mode)
     {
+        assert(!((mode & std::ios_base::in) && (mode & std::ios_base::out)) && "nes::basic_pipe_streambuf::open called with mode = std::ios_base::in | std::ios_base::out.");
+
         close();
 
         const auto native_name{pipe_root + name};
-
-        int native_mode{};
-        if(mode & std::ios_base::in)
-            native_mode = O_RDONLY;
-        if(mode & std::ios_base::out)
-            native_mode = O_WRONLY;
-        if((mode & std::ios_base::out) && (mode & std::ios_base::in))
-            native_mode = O_RDWR;
-
         if(mkfifo(std::data(native_name), 0660) != 0 && errno != EEXIST)
             return;
 
+        const int native_mode{mode & std::ios_base::in ? O_RDONLY : O_WRONLY};
         int handle = ::open(std::data(native_name), native_mode);
         if(handle < 0)
             return;
 
-        parent_type::setp(std::data(m_output_buffer), std::data(m_output_buffer) + buf_size);
+        parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         m_handle = handle;
     }
 
@@ -679,7 +569,7 @@ private:
     :m_handle{handle}
     ,m_mode{mode}
     {
-        parent_type::setp(std::data(m_output_buffer), std::data(m_output_buffer) + buf_size);
+        parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
     }
 
 protected:
@@ -689,10 +579,10 @@ protected:
         {
             const std::ptrdiff_t count{parent_type::pptr() - parent_type::pbase()};
 
-            if(write(m_handle, reinterpret_cast<const char*>(std::data(m_output_buffer)), count * sizeof(char_type)) < 0)
+            if(write(m_handle, reinterpret_cast<const char*>(std::data(m_buffer)), count * sizeof(char_type)) < 0)
                 return -1;
 
-            parent_type::setp(std::data(m_output_buffer), std::data(m_output_buffer) + buf_size);
+            parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         }
 
         return 0;
@@ -700,12 +590,14 @@ protected:
 
     virtual int_type overflow(int_type c = traits_type::eof()) override
     {
+        assert(m_mode & std::ios_base::out && "Write operation on a read only pipe.");
+
         if(traits_type::eq_int_type(c, traits_type::eof()))
         {
-            if(write(m_handle, reinterpret_cast<const char*>(std::data(m_output_buffer)), std::size(m_output_buffer) * sizeof(char_type)))
+            if(write(m_handle, reinterpret_cast<const char*>(std::data(m_buffer)), std::size(m_buffer) * sizeof(char_type)))
                 return traits_type::eof();
 
-            parent_type::setp(std::data(m_output_buffer), std::data(m_output_buffer) + buf_size);
+            parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         }
         else
         {
@@ -718,6 +610,8 @@ protected:
 
     virtual std::streamsize xsputn(const char_type* s, std::streamsize count) override
     {
+        assert(m_mode & std::ios_base::out && "Write operation on a read only pipe.");
+
         const auto written = write(m_handle, reinterpret_cast<const char*>(s), count * sizeof(char_type));
         if(written < 0)
             return 0;
@@ -727,13 +621,15 @@ protected:
 
     virtual int_type underflow() override
     {
+        assert(m_mode & std::ios_base::in && "Read operation on a write only pipe.");
+
         if(parent_type::gptr() == parent_type::egptr())
         {
-            const auto readed = read(m_handle, reinterpret_cast<char*>(std::data(m_input_buffer)), buf_size * sizeof(char_type));
+            const auto readed = read(m_handle, reinterpret_cast<char*>(std::data(m_buffer)), buf_size * sizeof(char_type));
             if(readed <= 0)
                 return traits_type::eof();
 
-            parent_type::setg(std::data(m_input_buffer), std::data(m_input_buffer), std::data(m_input_buffer) + (readed / sizeof(char_type)));
+            parent_type::setg(std::data(m_buffer), std::data(m_buffer), std::data(m_buffer) + (readed / sizeof(char_type)));
         }
 
         return traits_type::to_int_type(*parent_type::gptr());
@@ -741,6 +637,8 @@ protected:
 
     virtual std::streamsize xsgetn(char_type* s, std::streamsize count) override
     {
+        assert(m_mode & std::ios_base::in && "Read operation on a write only pipe.");
+
         const auto readed = read(m_handle, reinterpret_cast<char*>(s), count * sizeof(char_type));
         if(readed < 0)
             return 0;
@@ -749,8 +647,7 @@ protected:
     }
 
 private:
-    std::array<CharT, buf_size> m_input_buffer{};
-    std::array<CharT, buf_size> m_output_buffer{};
+    std::array<CharT, buf_size> m_buffer{};
     int m_handle{};
     std::ios_base::openmode m_mode{};
 };
@@ -915,86 +812,6 @@ private:
     std::unique_ptr<basic_pipe_streambuf<char_type, traits_type>> m_buffer{std::make_unique<basic_pipe_streambuf<char_type, traits_type>>()};
 };
 
-template<typename CharT, typename Traits = std::char_traits<CharT>>
-class basic_pipe_iostream : public std::basic_iostream<CharT, Traits>
-{
-private:
-    using parent_type = std::basic_iostream<CharT, Traits>;
-
-public:
-    using char_type    = CharT;
-    using traits_type  = Traits;
-    using int_type     = typename Traits::int_type;
-    using pos_type     = typename Traits::pos_type;
-    using off_type     = typename Traits::off_type;
-
-public:
-    constexpr basic_pipe_iostream() = default;
-
-    basic_pipe_iostream(const std::string& name, std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in)
-    :parent_type{}
-    {
-        parent_type::rdbuf(m_buffer.get());
-        open(name, mode);
-    }
-
-    ~basic_pipe_iostream() = default;
-    basic_pipe_iostream(const basic_pipe_iostream&) = delete;
-    basic_pipe_iostream& operator=(const basic_pipe_iostream&) = delete;
-
-    basic_pipe_iostream(basic_pipe_iostream&& other) noexcept
-    :parent_type{std::move(other)}
-    ,m_buffer{}
-    {
-        std::swap(m_buffer, other.m_buffer);
-        parent_type::rdbuf(m_buffer.get());
-    }
-
-    basic_pipe_iostream& operator=(basic_pipe_iostream&& other) noexcept
-    {
-        parent_type::operator=(std::move(other));
-        std::swap(m_buffer, other.m_buffer);
-
-        parent_type::rdbuf(m_buffer.get());
-
-        return *this;
-    }
-
-    void open(const std::string& name, std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in)
-    {
-        m_buffer->open(name, mode);
-        parent_type::clear(m_buffer->is_open() ? std::ios_base::goodbit : std::ios_base::failbit);
-    }
-
-    bool is_open() const noexcept
-    {
-        return m_buffer->is_open();
-    }
-
-    void close()
-    {
-        m_buffer->close();
-    }
-
-    basic_pipe_streambuf<char_type, traits_type>* rdbuf() const
-    {
-        return m_buffer.get();
-    }
-
-private:
-    friend std::pair<basic_pipe_iostream<char_type, traits_type>, basic_pipe_iostream<char_type, traits_type>> make_anonymous_bidirectional_pipe<char_type, traits_type>();
-
-    basic_pipe_iostream(basic_pipe_streambuf<char_type, traits_type> buffer)
-    :parent_type{}
-    ,m_buffer{std::make_unique<basic_pipe_streambuf<char_type, traits_type>>(std::move(buffer))}
-    {
-        parent_type::rdbuf(m_buffer.get());
-    }
-
-private:
-    std::unique_ptr<basic_pipe_streambuf<char_type, traits_type>> m_buffer{std::make_unique<basic_pipe_streambuf<char_type, traits_type>>()};
-};
-
 template<typename CharT, typename Traits>
 std::pair<basic_pipe_istream<CharT, Traits>, basic_pipe_ostream<CharT, Traits>> make_anonymous_pipe()
 {
@@ -1007,22 +824,9 @@ std::pair<basic_pipe_istream<CharT, Traits>, basic_pipe_ostream<CharT, Traits>> 
                           basic_pipe_ostream<CharT, Traits>{basic_pipe_streambuf<CharT, Traits>{fd[1], std::ios_base::out}});
 }
 
-template<typename CharT, typename Traits>
-std::pair<basic_pipe_iostream<CharT, Traits>, basic_pipe_iostream<CharT, Traits>> make_anonymous_bidirectional_pipe()
-{
-    int fd[2];
-
-    if(pipe(fd))
-        throw std::runtime_error{"Can not create pipe"};
-
-    return std::make_pair(basic_pipe_iostream<CharT, Traits>{basic_pipe_streambuf<CharT, Traits>{fd[0], std::ios_base::in | std::ios_base::out}},
-                          basic_pipe_iostream<CharT, Traits>{basic_pipe_streambuf<CharT, Traits>{fd[1], std::ios_base::in | std::ios_base::out}});
-}
-
 using pipe_streambuf = basic_pipe_streambuf<char>;
 using pipe_istream = basic_pipe_istream<char>;
 using pipe_ostream = basic_pipe_ostream<char>;
-using pipe_iostream = basic_pipe_iostream<char>;
 
 }
 
