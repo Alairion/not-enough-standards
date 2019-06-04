@@ -386,7 +386,7 @@ public:
 
     bool try_lock()
     {
-        return !impl::try_lock_mutex(m_handle);
+        return impl::try_lock_mutex(m_handle);
     }
 
     void unlock()
@@ -432,7 +432,7 @@ public:
 
     bool try_lock()
     {
-        return !impl::try_lock_mutex(m_handle);
+        return impl::try_lock_mutex(m_handle);
     }
 
     template<class Rep, class Period>
@@ -543,7 +543,7 @@ public:
 
     bool try_lock()
     {
-        return !impl::try_lock_mutex(m_handle);
+        return impl::try_lock_mutex(m_handle);
     }
 
     template<class Rep, class Period>

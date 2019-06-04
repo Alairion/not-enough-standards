@@ -291,16 +291,16 @@ int main()
 {
     try
     {
-        //shared_library_example();
-        //pipe_example();
-        //semaphore_example();
+        shared_library_example();
+        pipe_example();
+        semaphore_example();
         process_example();
-        //process_kill_example();
-        //named_pipe_example();
-        //shared_memory_example();
-        //named_mutex_example();
-        //timed_named_mutex_example();
-        //named_semaphore_example();
+        process_kill_example();
+        named_pipe_example();
+        shared_memory_example();
+        named_mutex_example();
+        timed_named_mutex_example();
+        named_semaphore_example();
     }
     catch(const std::exception& e)
     {
