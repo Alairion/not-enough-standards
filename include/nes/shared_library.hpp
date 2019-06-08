@@ -50,7 +50,7 @@ namespace nes
 {
 
 struct load_current_t{};
-static constexpr load_current_t load_current;
+static constexpr load_current_t load_current{};
 
 class shared_library
 {
@@ -162,7 +162,7 @@ namespace nes
 {
 
 struct load_current_t{};
-static constexpr load_current_t load_current;
+static constexpr load_current_t load_current{};
 
 class shared_library
 {
