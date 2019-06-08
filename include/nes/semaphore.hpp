@@ -59,7 +59,7 @@ public:
     using native_handle_type = HANDLE;
 
 public:
-    semaphore(std::uint32_t initial_count = 0)
+    semaphore(std::size_t initial_count = 0)
     {
         m_handle = CreateSemaphoreW(nullptr, static_cast<LONG>(initial_count), std::numeric_limits<LONG>::max(), nullptr);
         if(!m_handle)
@@ -68,6 +68,7 @@ public:
 
     ~semaphore()
     {
+        if(m_handle)
         CloseHandle(m_handle);
     }
 
@@ -123,7 +124,7 @@ public:
     using native_handle_type = HANDLE;
 
 public:
-    timed_semaphore(std::uint32_t initial_count = 0)
+    timed_semaphore(std::size_t initial_count = 0)
     {
         m_handle = CreateSemaphoreW(nullptr, static_cast<LONG>(initial_count), std::numeric_limits<LONG>::max(), nullptr);
         if(!m_handle)
@@ -210,7 +211,7 @@ public:
     using native_handle_type = sem_t*;
 
 public:
-    semaphore(std::uint32_t initial_count = 0)
+    semaphore(std::size_t initial_count = 0)
     {
         if(sem_init(m_handle.get(), 0, initial_count) != 0)
             throw std::runtime_error{"Can not create semaphore. " + std::string{strerror(errno)}};
@@ -258,7 +259,7 @@ public:
     using native_handle_type = sem_t*;
 
 public:
-    timed_semaphore(std::uint32_t initial_count = 0)
+    timed_semaphore(std::size_t initial_count = 0)
     {
         if(sem_init(m_handle.get(), 0, initial_count) != 0)
             throw std::runtime_error{"Can not create timed_semaphore. " + std::string{strerror(errno)}};
