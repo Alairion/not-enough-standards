@@ -81,7 +81,7 @@ public:
     static constexpr std::size_t buf_size{1024};
 
 public:
-    constexpr basic_pipe_streambuf() = default;
+    basic_pipe_streambuf() = default;
 
     basic_pipe_streambuf(const std::string& name, std::ios_base::openmode mode)
     {
@@ -492,7 +492,7 @@ public:
     static constexpr std::size_t buf_size{1024};
 
 public:
-    constexpr basic_pipe_streambuf() = default;
+    basic_pipe_streambuf() = default;
 
     basic_pipe_streambuf(const std::string& name, std::ios_base::openmode mode)
     {
