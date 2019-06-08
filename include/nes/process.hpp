@@ -216,7 +216,7 @@ public:
     using id = impl::id_t;
 
 public:
-    constexpr process() = default;
+    constexpr process() noexcept = default;
 
     process(const std::string& path, const std::string& working_directory)
     :process{path, {}, working_directory, {}}{}
@@ -768,7 +768,7 @@ public:
     using id = impl::id_t;
 
 public:
-    constexpr process() = default;
+    constexpr process() noexcept = default;
 
     process(const std::string& path, const std::string& working_directory)
     :process{path, {}, working_directory, {}}{}
