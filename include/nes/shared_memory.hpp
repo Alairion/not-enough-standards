@@ -103,7 +103,7 @@ constexpr shared_memory_option operator~(shared_memory_option value) noexcept
 namespace impl
 {
 
-static std::uintptr_t get_allocation_granularity() noexcept
+inline std::uintptr_t get_allocation_granularity() noexcept
 {
     SYSTEM_INFO info{};
     GetSystemInfo(&info);
@@ -341,7 +341,7 @@ constexpr shared_memory_option operator~(shared_memory_option value) noexcept
 namespace impl
 {
 
-static std::uintptr_t get_allocation_granularity() noexcept
+inline std::uintptr_t get_allocation_granularity() noexcept
 {
     return static_cast<std::uintptr_t>(sysconf(_SC_PAGE_SIZE));
 }
