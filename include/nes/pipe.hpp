@@ -293,7 +293,7 @@ public:
     using off_type     = typename Traits::off_type;
 
 public:
-    constexpr basic_pipe_istream() = default;
+    basic_pipe_istream() = default;
 
     basic_pipe_istream(const std::string& name, std::ios_base::openmode mode = std::ios_base::in)
     :parent_type{}
@@ -374,7 +374,7 @@ public:
     using off_type     = typename Traits::off_type;
 
 public:
-    constexpr basic_pipe_ostream() = default;
+    basic_pipe_ostream() = default;
 
     basic_pipe_ostream(const std::string& name, std::ios_base::openmode mode = std::ios_base::out)
     :parent_type{}
@@ -669,7 +669,7 @@ public:
     using off_type     = typename Traits::off_type;
 
 public:
-    constexpr basic_pipe_istream() = default;
+    basic_pipe_istream() = default;
 
     basic_pipe_istream(const std::string& name, std::ios_base::openmode mode = std::ios_base::in)
     :parent_type{}
@@ -750,7 +750,7 @@ public:
     using off_type     = typename Traits::off_type;
 
 public:
-    constexpr basic_pipe_ostream() = default;
+    basic_pipe_ostream() = default;
 
     basic_pipe_ostream(const std::string& name, std::ios_base::openmode mode = std::ios_base::out)
     :parent_type{}
