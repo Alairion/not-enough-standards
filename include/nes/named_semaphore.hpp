@@ -72,7 +72,7 @@ public:
             {
                 m_handle = OpenSemaphoreW(SYNCHRONIZE, FALSE, std::data(native_name));
                 if(!m_handle)
-                    throw std::runtime_error{"Can not create semaphore. " + get_error_message()};
+                    throw std::runtime_error{"Can not open semaphore. " + get_error_message()};
             }
             else
             {
@@ -99,7 +99,99 @@ public:
 
     bool try_acquire()
     {
-        return WaitForSingleObject(m_handle, 0) == WAIT_OBJECT_0;;
+        return WaitForSingleObject(m_handle, 0) == WAIT_OBJECT_0;
+    }
+
+    void release()
+    {
+        if(!ReleaseSemaphore(m_handle, 1, nullptr))
+            throw std::runtime_error{"Failed to increment semaphore count. " + get_error_message()};
+    }
+
+    native_handle_type native_handle() const noexcept
+    {
+        return m_handle;
+    }
+
+private:
+    std::wstring to_wide(const std::string& path)
+    {
+        if(std::empty(path))
+            return {};
+
+        std::wstring out_path{};
+        const auto required_size = MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), nullptr, 0);
+        out_path.resize(required_size);
+
+        if(!MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), std::data(out_path), std::size(out_path)))
+            throw std::runtime_error{"Can not convert the path to wide."};
+
+        return out_path;
+    }
+
+    std::string get_error_message() const
+    {
+        std::string out{};
+        out.resize(1024);
+
+        const DWORD error{GetLastError()};
+        const DWORD out_size{FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, std::data(out), std::size(out), nullptr)};
+        out.resize(std::max(out_size - 2, DWORD{}));
+
+        out += " (#" + std::to_string(error) + ")";
+
+        return out;
+    }
+
+private:
+    native_handle_type m_handle{};
+};
+
+class timed_named_semaphore
+{
+public:
+    using native_handle_type = HANDLE;
+
+public:
+    timed_named_semaphore(const std::string& name, std::uint32_t initial_count = 0)
+    {
+        const auto native_name{to_wide(named_semaphore_root + name)};
+
+        m_handle = CreateSemaphoreW(nullptr, static_cast<LONG>(initial_count), std::numeric_limits<LONG>::max(), std::data(native_name));
+        if(!m_handle)
+        {
+            if(GetLastError() == ERROR_ACCESS_DENIED)
+            {
+                m_handle = OpenSemaphoreW(SYNCHRONIZE, FALSE, std::data(native_name));
+                if(!m_handle)
+                    throw std::runtime_error{"Can not open semaphore. " + get_error_message()};
+            }
+            else
+            {
+                throw std::runtime_error{"Can not create semaphore. " + get_error_message()};
+            }
+        }
+    }
+
+    ~timed_named_semaphore()
+    {
+        CloseHandle(m_handle);
+    }
+
+    timed_named_semaphore(const timed_named_semaphore&) = delete;
+    timed_named_semaphore& operator=(const timed_named_semaphore&) = delete;
+    timed_named_semaphore(timed_named_semaphore&& other) noexcept = delete;
+    timed_named_semaphore& operator=(timed_named_semaphore&& other) noexcept = delete;
+
+    void acquire()
+    {
+        if(WaitForSingleObject(m_handle, INFINITE))
+            throw std::runtime_error{"Failed to decrement semaphore count. " + get_error_message()};
+    }
+
+    bool try_acquire()
+    {
+        return WaitForSingleObject(m_handle, 0) == WAIT_OBJECT_0;
     }
 
     template<class Rep, class Period>
@@ -180,7 +272,9 @@ public:
 public:
     named_semaphore(const std::string& name, std::uint32_t initial_count = 0)
     {
-        m_handle = sem_open(std::data(name), O_CREAT, 0660, initial_count);
+        const auto native_name{named_semaphore_root + name};
+
+        m_handle = sem_open(std::data(native_name), O_CREAT, 0660, initial_count);
         if(m_handle == SEM_FAILED)
             throw std::runtime_error{"Can not create semaphore. " + std::string{strerror(errno)}};
     }
@@ -229,7 +323,9 @@ public:
 public:
     timed_named_semaphore(const std::string& name, std::uint32_t initial_count = 0)
     {
-        m_handle = sem_open(std::data(name), O_CREAT, 0660, initial_count);
+        const auto native_name{named_semaphore_root + name};
+
+        m_handle = sem_open(std::data(native_name), O_CREAT, 0660, initial_count);
         if(m_handle == SEM_FAILED)
             throw std::runtime_error{"Can not create semaphore. " + std::string{strerror(errno)}};
     }
