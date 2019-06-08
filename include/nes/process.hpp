@@ -649,6 +649,7 @@ constexpr bool operator>=(id_t lhs, id_t rhs) noexcept
     return static_cast<pid_t>(lhs) >= static_cast<pid_t>(rhs);
 }
 
+#ifdef NES_PROCESS_PIPE_EXTENSION
 struct auto_handle
 {
     constexpr auto_handle() = default;
@@ -712,15 +713,18 @@ struct auto_handle
 
     int m_handle{-1};
 };
+#endif
 
 }
 
 enum class process_options : std::uint32_t
 {
     none = 0x00,
+#ifdef NES_PROCESS_PIPE_EXTENSION
     grab_stdout = 0x10,
     grab_stderr = 0x20,
     grab_stdin = 0x40
+#endif
 };
 
 constexpr process_options operator&(process_options left, process_options right) noexcept
@@ -783,7 +787,7 @@ public:
     process(const std::string& path, const std::string& working_directory, process_options options)
     :process{path, {}, working_directory, options}{}
 
-    process(const std::string& path, std::vector<std::string> args = std::vector<std::string>{}, const std::string& working_directory = std::string{}, process_options options = process_options{})
+    process(const std::string& path, std::vector<std::string> args = std::vector<std::string>{}, const std::string& working_directory = std::string{}, process_options options [[maybe_unused]] = process_options{})
     {
         assert(!std::empty(path) && "nes::process::process called with empty path.");
 
@@ -794,6 +798,7 @@ public:
         for(std::size_t i{}; i < std::size(args); ++i)
             native_args[i] = std::data(args[i]);
 
+    #ifdef NES_PROCESS_PIPE_EXTENSION
         impl::auto_handle stdin_fd[2]{};
         impl::auto_handle stdout_fd[2]{};
         impl::auto_handle stderr_fd[2]{};
@@ -807,8 +812,13 @@ public:
         if(static_cast<bool>(options & process_options::grab_stderr) && pipe(reinterpret_cast<int*>(stderr_fd)))
             throw std::runtime_error{"Can not create stderr pipe. " + std::string{strerror(errno)}};
 
+        const bool standard_streams{static_cast<bool>(options & process_options::grab_stdin) || static_cast<bool>(options & process_options::grab_stdout) || static_cast<bool>(options & process_options::grab_stderr)};
+    #else
+        constexpr bool standard_streams{false};
+    #endif
+
         pid_t id{};
-        if(!(static_cast<bool>(options & process_options::grab_stdin) || static_cast<bool>(options & process_options::grab_stdout) || static_cast<bool>(options & process_options::grab_stderr)) && std::empty(working_directory))
+        if(!standard_streams && std::empty(working_directory))
         {
             id = vfork();
 
@@ -832,6 +842,8 @@ public:
             }
             else if(id == 0)
             {
+
+            #ifdef NES_PROCESS_PIPE_EXTENSION
                 if(static_cast<bool>(options & process_options::grab_stdin))
                     if(dup2(stdin_fd[0], 0) == -1)
                         _exit(EXIT_FAILURE);
@@ -843,6 +855,7 @@ public:
                 if(static_cast<bool>(options & process_options::grab_stderr))
                     if(dup2(stderr_fd[1], 2) == -1)
                         _exit(EXIT_FAILURE);
+            #endif
 
                 if(!std::empty(working_directory))
                     if(chdir(std::data(working_directory)))
@@ -854,7 +867,8 @@ public:
         }
 
         m_id = id;
-        
+
+    #ifdef NES_PROCESS_PIPE_EXTENSION
         if(static_cast<bool>(options & process_options::grab_stdin))
              m_stdin_stream.reset(new pipe_ostream{pipe_streambuf{stdin_fd[1].release(), std::ios_base::out}});
 
@@ -863,6 +877,7 @@ public:
 
         if(static_cast<bool>(options & process_options::grab_stderr))
             m_stderr_stream.reset(new pipe_istream{pipe_streambuf{stderr_fd[0].release(), std::ios_base::in}});
+    #endif
     }
 
     ~process()
@@ -879,9 +894,11 @@ public:
     process(process&& other) noexcept
     :m_id{std::exchange(other.m_id, -1)}
     ,m_return_code{std::exchange(other.m_return_code, return_code_type{})}
+#ifdef NES_PROCESS_PIPE_EXTENSION
     ,m_stdin_stream{std::move(other.m_stdin_stream)}
     ,m_stdout_stream{std::move(other.m_stdout_stream)}
     ,m_stderr_stream{std::move(other.m_stderr_stream)}
+#endif
     {
 
     }
@@ -893,9 +910,11 @@ public:
 
         m_id = std::exchange(other.m_id, -1);
         m_return_code = std::exchange(other.m_return_code, return_code_type{});
+    #ifdef NES_PROCESS_PIPE_EXTENSION
         m_stdin_stream = std::move(other.m_stdin_stream);
         m_stdout_stream = std::move(other.m_stdout_stream);
         m_stderr_stream = std::move(other.m_stderr_stream);
+    #endif
 
         return *this;
     }
@@ -957,6 +976,7 @@ public:
         return static_cast<impl::id_t>(m_id);
     }
 
+#ifdef NES_PROCESS_PIPE_EXTENSION
     pipe_ostream& stdin_stream() noexcept
     {
         return *m_stdin_stream;
@@ -971,13 +991,16 @@ public:
     {
         return *m_stderr_stream;
     }
+#endif
 
 private:
     native_handle_type m_id{};
     return_code_type m_return_code{};
+#ifdef NES_PROCESS_PIPE_EXTENSION
     std::unique_ptr<pipe_ostream> m_stdin_stream{};
     std::unique_ptr<pipe_istream> m_stdout_stream{};
     std::unique_ptr<pipe_istream> m_stderr_stream{};
+#endif
 };
 
 namespace this_process
