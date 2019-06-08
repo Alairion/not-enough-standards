@@ -61,7 +61,7 @@ public:
     using native_handle_type = HANDLE;
 
 public:
-    named_semaphore(const std::string& name, std::size_t initial_count = 0)
+    explicit named_semaphore(const std::string& name, std::size_t initial_count = 0)
     {
         const auto native_name{to_wide(named_semaphore_root + name)};
 
@@ -153,7 +153,7 @@ public:
     using native_handle_type = HANDLE;
 
 public:
-    timed_named_semaphore(const std::string& name, std::size_t initial_count = 0)
+    explicit timed_named_semaphore(const std::string& name, std::size_t initial_count = 0)
     {
         const auto native_name{to_wide(named_semaphore_root + name)};
 
@@ -270,7 +270,7 @@ public:
     using native_handle_type = sem_t*;
 
 public:
-    named_semaphore(const std::string& name, std::size_t initial_count = 0)
+    explicit named_semaphore(const std::string& name, std::size_t initial_count = 0)
     {
         const auto native_name{named_semaphore_root + name};
 
@@ -321,7 +321,7 @@ public:
     using native_handle_type = sem_t*;
 
 public:
-    timed_named_semaphore(const std::string& name, std::size_t initial_count = 0)
+    explicit timed_named_semaphore(const std::string& name, std::size_t initial_count = 0)
     {
         const auto native_name{named_semaphore_root + name};
 
