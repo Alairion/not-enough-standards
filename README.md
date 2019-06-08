@@ -26,7 +26,8 @@ target_link_libraries(xxx not_enough_standards)
 target_include_directories(xxx PRIVATE ${NES_INCLUDE_DIR})
 ```
 
-Most files of the library are independent from each others, so if you only need one specific feature, you can use only the header of that feature. Actually the only file with a dependency is `process.hpp` which depends of `pipe.hpp`.
+Most files of the library are independent from each others, so if you only need one specific feature, you can use only the header of that feature.   
+Actually the only file with a dependency is `process.hpp` which defines more features if `pipe.hpp` is available.
 
 ## Usage
 
