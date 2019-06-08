@@ -283,7 +283,8 @@ public:
 
     ~named_semaphore()
     {
-        sem_close(m_handle);
+        if(m_handle != SEM_FAILED)
+            sem_close(m_handle);
     }
 
     named_semaphore(const named_semaphore&) = delete;
@@ -314,7 +315,7 @@ public:
     }
 
 private:
-    native_handle_type m_handle{};
+    native_handle_type m_handle{SEM_FAILED};
 };
 
 class timed_named_semaphore
@@ -334,7 +335,8 @@ public:
 
     ~timed_named_semaphore()
     {
-        sem_close(m_handle);
+        if(m_handle != SEM_FAILED)
+            sem_close(m_handle);
     }
 
     timed_named_semaphore(const timed_named_semaphore&) = delete;
@@ -384,7 +386,7 @@ public:
     }
 
 private:
-    native_handle_type m_handle{};
+    native_handle_type m_handle{SEM_FAILED};
 };
 
 }
