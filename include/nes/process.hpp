@@ -134,11 +134,6 @@ public:
         return std::exchange(m_handle, INVALID_HANDLE_VALUE);
     }
 
-    operator HANDLE() noexcept
-    {
-        return m_handle;
-    }
-
     operator HANDLE() const noexcept
     {
         return m_handle;
