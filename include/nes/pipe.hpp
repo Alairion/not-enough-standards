@@ -83,7 +83,7 @@ public:
 public:
     basic_pipe_streambuf() = default;
 
-    basic_pipe_streambuf(const std::string& name, std::ios_base::openmode mode)
+    explicit basic_pipe_streambuf(const std::string& name, std::ios_base::openmode mode)
     {
         open(name, mode);
     }
@@ -295,7 +295,7 @@ public:
 public:
     basic_pipe_istream() = default;
 
-    basic_pipe_istream(const std::string& name, std::ios_base::openmode mode = std::ios_base::in)
+    explicit basic_pipe_istream(const std::string& name, std::ios_base::openmode mode = std::ios_base::in)
     :parent_type{}
     {
         parent_type::rdbuf(m_buffer.get());
@@ -376,7 +376,7 @@ public:
 public:
     basic_pipe_ostream() = default;
 
-    basic_pipe_ostream(const std::string& name, std::ios_base::openmode mode = std::ios_base::out)
+    explicit basic_pipe_ostream(const std::string& name, std::ios_base::openmode mode = std::ios_base::out)
     :parent_type{}
     {
         parent_type::rdbuf(m_buffer.get());
@@ -494,7 +494,7 @@ public:
 public:
     basic_pipe_streambuf() = default;
 
-    basic_pipe_streambuf(const std::string& name, std::ios_base::openmode mode)
+    explicit basic_pipe_streambuf(const std::string& name, std::ios_base::openmode mode)
     {
         open(name, mode);
     }
@@ -671,7 +671,7 @@ public:
 public:
     basic_pipe_istream() = default;
 
-    basic_pipe_istream(const std::string& name, std::ios_base::openmode mode = std::ios_base::in)
+    explicit basic_pipe_istream(const std::string& name, std::ios_base::openmode mode = std::ios_base::in)
     :parent_type{}
     {
         parent_type::rdbuf(m_buffer.get());
@@ -752,7 +752,7 @@ public:
 public:
     basic_pipe_ostream() = default;
 
-    basic_pipe_ostream(const std::string& name, std::ios_base::openmode mode = std::ios_base::out)
+    explicit basic_pipe_ostream(const std::string& name, std::ios_base::openmode mode = std::ios_base::out)
     :parent_type{}
     {
         parent_type::rdbuf(m_buffer.get());

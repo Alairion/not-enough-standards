@@ -152,7 +152,7 @@ public:
 public:
     constexpr shared_memory() noexcept = default;
 
-    shared_memory(const std::string& name, std::uint64_t size)
+    explicit shared_memory(const std::string& name, std::uint64_t size)
     {
         assert(!std::empty(name) && "nes::shared_memory::shared_memory called with empty name.");
         assert(size != 0 && "nes::shared_memory::shared_memory called with size == 0.");
@@ -390,7 +390,7 @@ public:
 public:
     constexpr shared_memory() noexcept = default;
 
-    shared_memory(const std::string& name, std::uint64_t size)
+    explicit shared_memory(const std::string& name, std::uint64_t size)
     {
         assert(!std::empty(name) && "nes::shared_memory::shared_memory called with empty name.");
         assert(size != 0 && "nes::shared_memory::shared_memory called with size == 0.");

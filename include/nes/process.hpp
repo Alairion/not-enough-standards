@@ -218,16 +218,16 @@ public:
 public:
     constexpr process() noexcept = default;
 
-    process(const std::string& path, const std::string& working_directory)
+    explicit process(const std::string& path, const std::string& working_directory)
     :process{path, {}, working_directory, {}}{}
 
-    process(const std::string& path, process_options options)
+    explicit process(const std::string& path, process_options options)
     :process{path, {}, {}, options}{}
 
-    process(const std::string& path, const std::vector<std::string>& args, process_options options)
+    explicit process(const std::string& path, const std::vector<std::string>& args, process_options options)
     :process{path, args, {}, options}{}
 
-    process(const std::string& path, const std::string& working_directory, process_options options)
+    explicit process(const std::string& path, const std::string& working_directory, process_options options)
     :process{path, {}, working_directory, options}{}
 
     explicit process(const std::string& path, std::vector<std::string> args = std::vector<std::string>{}, const std::string& working_directory = std::string{}, process_options options [[maybe_unused]] = process_options{})
@@ -770,16 +770,16 @@ public:
 public:
     constexpr process() noexcept = default;
 
-    process(const std::string& path, const std::string& working_directory)
+    explicit process(const std::string& path, const std::string& working_directory)
     :process{path, {}, working_directory, {}}{}
 
-    process(const std::string& path, process_options options)
+    explicit process(const std::string& path, process_options options)
     :process{path, {}, {}, options}{}
 
-    process(const std::string& path, const std::vector<std::string>& args, process_options options)
+    explicit process(const std::string& path, const std::vector<std::string>& args, process_options options)
     :process{path, args, {}, options}{}
 
-    process(const std::string& path, const std::string& working_directory, process_options options)
+    explicit process(const std::string& path, const std::string& working_directory, process_options options)
     :process{path, {}, working_directory, options}{}
 
     explicit process(const std::string& path, std::vector<std::string> args = std::vector<std::string>{}, const std::string& working_directory = std::string{}, process_options options [[maybe_unused]] = process_options{})
