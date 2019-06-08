@@ -58,7 +58,7 @@ public:
     using native_handle_type = HINSTANCE;
 
 public:
-    constexpr shared_library() = default;
+    constexpr shared_library() noexcept = default;
 
     explicit shared_library(load_current_t)
     {
@@ -170,7 +170,7 @@ public:
     using native_handle_type = void*;
 
 public:
-    constexpr shared_library() = default;
+    constexpr shared_library() noexcept = default;
 
     explicit shared_library(load_current_t)
     {
