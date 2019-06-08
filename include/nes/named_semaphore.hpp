@@ -83,7 +83,8 @@ public:
 
     ~named_semaphore()
     {
-        CloseHandle(m_handle);
+        if(m_handle)
+            CloseHandle(m_handle);
     }
 
     named_semaphore(const named_semaphore&) = delete;
@@ -175,7 +176,8 @@ public:
 
     ~timed_named_semaphore()
     {
-        CloseHandle(m_handle);
+        if(m_handle)
+            CloseHandle(m_handle);
     }
 
     timed_named_semaphore(const timed_named_semaphore&) = delete;
