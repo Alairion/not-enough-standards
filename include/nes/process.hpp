@@ -42,6 +42,11 @@
     #error "Not enough standards does not support this environment."
 #endif
 
+#if __has_include("pipe.hpp")
+    #define NES_PROCESS_PIPE_EXTENSION
+    #include "pipe.hpp"
+#endif
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -49,8 +54,6 @@
 #include <memory>
 #include <functional>
 #include <cassert>
-
-#include "pipe.hpp"
 
 #if defined(NES_WIN32_PROCESS)
 
@@ -165,9 +168,11 @@ private:
 enum class process_options : std::uint32_t
 {
     none = 0x00,
+#ifdef NES_PROCESS_PIPE_EXTENSION
     grab_stdout = 0x10,
     grab_stderr = 0x20,
-    grab_stdin = 0x40
+    grab_stdin = 0x40 
+#endif
 };
 
 constexpr process_options operator&(process_options left, process_options right) noexcept
@@ -230,7 +235,7 @@ public:
     process(const std::string& path, const std::string& working_directory, process_options options)
     :process{path, {}, working_directory, options}{}
 
-    process(const std::string& path, std::vector<std::string> args = std::vector<std::string>{}, const std::string& working_directory = std::string{}, process_options options = process_options{})
+    process(const std::string& path, std::vector<std::string> args = std::vector<std::string>{}, const std::string& working_directory = std::string{}, process_options options [[maybe_unused]] = process_options{})
     {
         assert(!std::empty(path) && "nes::process::process called with empty path.");
 
@@ -239,6 +244,7 @@ public:
         security_attributes.bInheritHandle = TRUE;
         security_attributes.lpSecurityDescriptor = nullptr;
 
+    #ifdef NES_PROCESS_PIPE_EXTENSION
         impl::auto_handle stdin_rd{};
         impl::auto_handle stdout_rd{};
         impl::auto_handle stderr_rd{};
@@ -257,6 +263,7 @@ public:
         if(static_cast<bool>(options & process_options::grab_stderr))
             if(!CreatePipe(&stderr_rd, &stderr_wr, &security_attributes, 0) || !SetHandleInformation(stderr_rd, HANDLE_FLAG_INHERIT, 0))
                 throw std::runtime_error{"Can not create stderr pipe. " + get_error_message()};
+    #endif
 
         args.insert(std::begin(args), path);
 
@@ -314,11 +321,13 @@ public:
 
         STARTUPINFOW startup_info{};
         startup_info.cb = sizeof(STARTUPINFOW);
+    #ifdef NES_PROCESS_PIPE_EXTENSION
         startup_info.hStdInput = stdin_rd;
         startup_info.hStdOutput = stdout_wr;
         startup_info.hStdError = stderr_wr;
         if(static_cast<std::uint32_t>(options) != 0)
             startup_info.dwFlags = STARTF_USESTDHANDLES;
+    #endif
 
         PROCESS_INFORMATION process_info{};
         if(!CreateProcessW(std::data(native_path), null_or_data(args_str), nullptr, nullptr, TRUE, 0, nullptr, null_or_data(native_working_directory), &startup_info, &process_info))
@@ -328,6 +337,7 @@ public:
         m_handle = process_info.hProcess;
         m_thread_handle = process_info.hThread;
 
+    #ifdef NES_PROCESS_PIPE_EXTENSION
         if(static_cast<bool>(options & process_options::grab_stdin))
         {
             pipe_streambuf buffer{stdin_wr.release(), std::ios_base::out};
@@ -345,6 +355,7 @@ public:
             pipe_streambuf buffer{stderr_rd.release(), std::ios_base::in};
             m_stderr_stream.reset(new pipe_istream{std::move(buffer)});
         }
+    #endif
     }
 
     ~process()
@@ -363,9 +374,11 @@ public:
     ,m_return_code{std::exchange(other.m_return_code, return_code_type{})}
     ,m_handle{std::move(other.m_handle)}
     ,m_thread_handle{std::move(other.m_thread_handle)}
+#ifdef NES_PROCESS_PIPE_EXTENSION
     ,m_stdin_stream{std::move(other.m_stdin_stream)}
     ,m_stdout_stream{std::move(other.m_stdout_stream)}
     ,m_stderr_stream{std::move(other.m_stderr_stream)}
+#endif
     {
 
     }
@@ -379,9 +392,11 @@ public:
         m_return_code = std::exchange(other.m_return_code, return_code_type{});
         m_handle = std::move(other.m_handle);
         m_thread_handle = std::move(other.m_thread_handle);
+    #ifdef NES_PROCESS_PIPE_EXTENSION
         m_stdin_stream = std::move(other.m_stdin_stream);
         m_stdout_stream = std::move(other.m_stdout_stream);
         m_stderr_stream = std::move(other.m_stderr_stream);
+    #endif
 
         return *this;
     }
@@ -452,6 +467,7 @@ public:
         return m_id;
     }
 
+#ifdef NES_PROCESS_PIPE_EXTENSION
     pipe_ostream& stdin_stream() noexcept
     {
         return *m_stdin_stream;
@@ -466,6 +482,7 @@ public:
     {
         return *m_stderr_stream;
     }
+#endif
 
 private:
     std::wstring to_wide(const std::string& path)
@@ -519,9 +536,11 @@ private:
     return_code_type m_return_code{};
     impl::auto_handle m_handle{};
     impl::auto_handle m_thread_handle{};
+#ifdef NES_PROCESS_PIPE_EXTENSION
     std::unique_ptr<pipe_ostream> m_stdin_stream{};
     std::unique_ptr<pipe_istream> m_stdout_stream{};
     std::unique_ptr<pipe_istream> m_stderr_stream{};
+#endif
 };
 
 namespace this_process
