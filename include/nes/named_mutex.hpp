@@ -122,7 +122,7 @@ public:
     using native_handle_type = HANDLE;
 
 public:
-    named_mutex(const std::string& name)
+    explicit named_mutex(const std::string& name)
     :m_handle{create_or_open(name)}
     {
 
@@ -169,7 +169,7 @@ public:
     using native_handle_type = HANDLE;
 
 public:
-    timed_named_mutex(const std::string& name)
+    explicit timed_named_mutex(const std::string& name)
     :m_handle{create_or_open(name)}
     {
 
@@ -363,7 +363,7 @@ public:
     using native_handle_type = pthread_mutex_t*;
 
 public:
-    named_mutex(const std::string& name)
+    explicit named_mutex(const std::string& name)
     :m_handle{impl::create_or_open_mutex(name, false)}
     {
 
@@ -409,7 +409,7 @@ public:
     using native_handle_type = pthread_mutex_t*;
 
 public:
-    timed_named_mutex(const std::string& name)
+    explicit timed_named_mutex(const std::string& name)
     :m_handle{impl::create_or_open_mutex(name, false)}
     {
 
@@ -474,7 +474,7 @@ public:
     using native_handle_type = pthread_mutex_t*;
 
 public:
-    recursive_named_mutex(const std::string& name)
+    explicit recursive_named_mutex(const std::string& name)
     :m_handle{impl::create_or_open_mutex(name, true)}
     {
 
@@ -520,7 +520,7 @@ public:
     using native_handle_type = pthread_mutex_t*;
 
 public:
-    recursive_timed_named_mutex(const std::string& name)
+    explicit recursive_timed_named_mutex(const std::string& name)
     :m_handle{impl::create_or_open_mutex(name, true)}
     {
 
