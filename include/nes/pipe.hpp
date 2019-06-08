@@ -171,7 +171,7 @@ private:
     friend class process;
     friend std::pair<basic_pipe_istream<char_type, traits_type>, basic_pipe_ostream<char_type, traits_type>> make_anonymous_pipe<char_type, traits_type>();
 
-    basic_pipe_streambuf(HANDLE handle, std::ios_base::openmode mode) noexcept
+    basic_pipe_streambuf(HANDLE handle, std::ios_base::openmode mode)
     :m_handle{handle}
     ,m_mode{mode}
     {
@@ -568,7 +568,7 @@ private:
     friend class process;
     friend std::pair<basic_pipe_istream<char_type, traits_type>, basic_pipe_ostream<char_type, traits_type>> make_anonymous_pipe<char_type, traits_type>();
 
-    basic_pipe_streambuf(int handle, std::ios_base::openmode mode) noexcept
+    basic_pipe_streambuf(int handle, std::ios_base::openmode mode)
     :m_handle{handle}
     ,m_mode{mode}
     {
