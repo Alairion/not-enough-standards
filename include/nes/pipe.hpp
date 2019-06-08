@@ -340,7 +340,7 @@ public:
         m_buffer->close();
     }
 
-    basic_pipe_streambuf<char_type, traits_type>* rdbuf() const
+    basic_pipe_streambuf<char_type, traits_type>* rdbuf() const noexcept
     {
         return m_buffer.get();
     }
@@ -421,7 +421,7 @@ public:
         m_buffer->close();
     }
 
-    basic_pipe_streambuf<char_type, traits_type>* rdbuf() const
+    basic_pipe_streambuf<char_type, traits_type>* rdbuf() const noexcept
     {
         return m_buffer.get();
     }
@@ -716,7 +716,7 @@ public:
         m_buffer->close();
     }
 
-    basic_pipe_streambuf<char_type, traits_type>* rdbuf() const
+    basic_pipe_streambuf<char_type, traits_type>* rdbuf() const noexcept
     {
         return m_buffer.get();
     }
@@ -797,7 +797,7 @@ public:
         m_buffer->close();
     }
 
-    basic_pipe_streambuf<char_type, traits_type>* rdbuf() const
+    basic_pipe_streambuf<char_type, traits_type>* rdbuf() const noexcept
     {
         return m_buffer.get();
     }
