@@ -230,7 +230,7 @@ public:
     process(const std::string& path, const std::string& working_directory, process_options options)
     :process{path, {}, working_directory, options}{}
 
-    process(const std::string& path, std::vector<std::string> args = std::vector<std::string>{}, const std::string& working_directory = std::string{}, process_options options [[maybe_unused]] = process_options{})
+    explicit process(const std::string& path, std::vector<std::string> args = std::vector<std::string>{}, const std::string& working_directory = std::string{}, process_options options [[maybe_unused]] = process_options{})
     {
         assert(!std::empty(path) && "nes::process::process called with empty path.");
 
@@ -782,7 +782,7 @@ public:
     process(const std::string& path, const std::string& working_directory, process_options options)
     :process{path, {}, working_directory, options}{}
 
-    process(const std::string& path, std::vector<std::string> args = std::vector<std::string>{}, const std::string& working_directory = std::string{}, process_options options [[maybe_unused]] = process_options{})
+    explicit process(const std::string& path, std::vector<std::string> args = std::vector<std::string>{}, const std::string& working_directory = std::string{}, process_options options [[maybe_unused]] = process_options{})
     {
         assert(!std::empty(path) && "nes::process::process called with empty path.");
 
