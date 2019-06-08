@@ -164,7 +164,7 @@ public:
             throw std::runtime_error{"Can not create shared memory. " + get_error_message()};
     }
 
-    shared_memory(const std::string& name, shared_memory_option options = shared_memory_option::none)
+    explicit shared_memory(const std::string& name, shared_memory_option options = shared_memory_option::none)
     {
         assert(!std::empty(name) && "nes::shared_memory::shared_memory called with empty name.");
 
@@ -408,7 +408,7 @@ public:
         }
     }
 
-    shared_memory(const std::string& name, shared_memory_option options = shared_memory_option::none)
+    explicit shared_memory(const std::string& name, shared_memory_option options = shared_memory_option::none)
     {
         assert(!std::empty(name) && "nes::shared_memory::shared_memory called with empty name.");
 
