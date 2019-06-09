@@ -28,7 +28,7 @@ void named_pipe_example()
     nes::pipe_istream is{"nes_example_pipe"};
     if(!is)
     {
-        std::cerr << "Can not open pipe." << std::endl;
+        std::cerr << "Failed to open pipe." << std::endl;
         return;
     }
 

@@ -63,7 +63,7 @@ public:
     {
         m_handle = CreateSemaphoreW(nullptr, static_cast<LONG>(initial_count), std::numeric_limits<LONG>::max(), nullptr);
         if(!m_handle)
-            throw std::runtime_error{"Can not create semaphore. " + get_error_message()};
+            throw std::runtime_error{"Failed to create semaphore. " + get_error_message()};
     }
 
     ~semaphore()
@@ -128,7 +128,7 @@ public:
     {
         m_handle = CreateSemaphoreW(nullptr, static_cast<LONG>(initial_count), std::numeric_limits<LONG>::max(), nullptr);
         if(!m_handle)
-            throw std::runtime_error{"Can not create semaphore. " + get_error_message()};
+            throw std::runtime_error{"Failed to create semaphore. " + get_error_message()};
     }
 
     ~timed_semaphore()
@@ -214,7 +214,7 @@ public:
     explicit semaphore(std::size_t initial_count = 0)
     {
         if(sem_init(m_handle.get(), 0, initial_count) != 0)
-            throw std::runtime_error{"Can not create semaphore. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to create semaphore. " + std::string{strerror(errno)}};
     }
 
     ~semaphore()
@@ -262,7 +262,7 @@ public:
     explicit timed_semaphore(std::size_t initial_count = 0)
     {
         if(sem_init(m_handle.get(), 0, initial_count) != 0)
-            throw std::runtime_error{"Can not create timed_semaphore. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to create timed_semaphore. " + std::string{strerror(errno)}};
     }
 
     ~timed_semaphore()

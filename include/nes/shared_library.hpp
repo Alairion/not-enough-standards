@@ -64,7 +64,7 @@ public:
     {
         m_handle = GetModuleHandleW(nullptr);
         if(!m_handle)
-            throw std::runtime_error{"Can not load current binary file. " + get_error_message()};
+            throw std::runtime_error{"Failed to load current binary file. " + get_error_message()};
     }
 
     explicit shared_library(const std::string& path)
@@ -73,7 +73,7 @@ public:
 
         m_handle = LoadLibraryW(to_wide(path).c_str());
         if(!m_handle)
-            throw std::runtime_error{"Can not load binary file \"" + path + "\". " + get_error_message()};
+            throw std::runtime_error{"Failed to load binary file \"" + path + "\". " + get_error_message()};
         m_need_free = true;
     }
 
@@ -131,7 +131,7 @@ private:
         out_path.resize(required_size);
 
         if(!MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), std::data(out_path), std::size(out_path)))
-            throw std::runtime_error{"Can not convert the path to wide."};
+            throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
@@ -176,7 +176,7 @@ public:
     {
         m_handle = dlopen(nullptr, RTLD_NOW);
         if(!m_handle)
-            throw std::runtime_error{"Can not load current binary file. " + std::string{dlerror()}};
+            throw std::runtime_error{"Failed to load current binary file. " + std::string{dlerror()}};
     }
 
     explicit shared_library(const std::string& path)
@@ -185,7 +185,7 @@ public:
 
         m_handle = dlopen(std::data(path), RTLD_NOW);
         if(!m_handle)
-            throw std::runtime_error{"Can not load binary file \"" + path + "\". " + std::string{dlerror()}};
+            throw std::runtime_error{"Failed to load binary file \"" + path + "\". " + std::string{dlerror()}};
     }
 
     ~shared_library()

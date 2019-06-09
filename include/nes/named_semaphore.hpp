@@ -72,11 +72,11 @@ public:
             {
                 m_handle = OpenSemaphoreW(SYNCHRONIZE, FALSE, std::data(native_name));
                 if(!m_handle)
-                    throw std::runtime_error{"Can not open semaphore. " + get_error_message()};
+                    throw std::runtime_error{"Failed to open semaphore. " + get_error_message()};
             }
             else
             {
-                throw std::runtime_error{"Can not create semaphore. " + get_error_message()};
+                throw std::runtime_error{"Failed to create semaphore. " + get_error_message()};
             }
         }
     }
@@ -124,7 +124,7 @@ private:
         out_path.resize(required_size);
 
         if(!MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), std::data(out_path), std::size(out_path)))
-            throw std::runtime_error{"Can not convert the path to wide."};
+            throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
@@ -164,11 +164,11 @@ public:
             {
                 m_handle = OpenSemaphoreW(SYNCHRONIZE, FALSE, std::data(native_name));
                 if(!m_handle)
-                    throw std::runtime_error{"Can not open semaphore. " + get_error_message()};
+                    throw std::runtime_error{"Failed to open semaphore. " + get_error_message()};
             }
             else
             {
-                throw std::runtime_error{"Can not create semaphore. " + get_error_message()};
+                throw std::runtime_error{"Failed to create semaphore. " + get_error_message()};
             }
         }
     }
@@ -232,7 +232,7 @@ private:
         out_path.resize(required_size);
 
         if(!MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), std::data(out_path), std::size(out_path)))
-            throw std::runtime_error{"Can not convert the path to wide."};
+            throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
@@ -276,7 +276,7 @@ public:
 
         m_handle = sem_open(std::data(native_name), O_CREAT, 0660, initial_count);
         if(m_handle == SEM_FAILED)
-            throw std::runtime_error{"Can not create semaphore. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to create semaphore. " + std::string{strerror(errno)}};
     }
 
     ~named_semaphore()
@@ -327,7 +327,7 @@ public:
 
         m_handle = sem_open(std::data(native_name), O_CREAT, 0660, initial_count);
         if(m_handle == SEM_FAILED)
-            throw std::runtime_error{"Can not create semaphore. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to create semaphore. " + std::string{strerror(errno)}};
     }
 
     ~timed_named_semaphore()

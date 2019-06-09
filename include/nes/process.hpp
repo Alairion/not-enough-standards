@@ -249,15 +249,15 @@ public:
 
         if(static_cast<bool>(options & process_options::grab_stdin))
             if(!CreatePipe(&stdin_rd, &stdin_wr, &security_attributes, 0) || !SetHandleInformation(stdin_wr, HANDLE_FLAG_INHERIT, 0))
-                throw std::runtime_error{"Can not create stdin pipe. " + get_error_message()};
+                throw std::runtime_error{"Failed to create stdin pipe. " + get_error_message()};
 
         if(static_cast<bool>(options & process_options::grab_stdout))
             if(!CreatePipe(&stdout_rd, &stdout_wr, &security_attributes, 0) || !SetHandleInformation(stdout_rd, HANDLE_FLAG_INHERIT, 0))
-                throw std::runtime_error{"Can not create stdout pipe. " + get_error_message()};
+                throw std::runtime_error{"Failed to create stdout pipe. " + get_error_message()};
 
         if(static_cast<bool>(options & process_options::grab_stderr))
             if(!CreatePipe(&stderr_rd, &stderr_wr, &security_attributes, 0) || !SetHandleInformation(stderr_rd, HANDLE_FLAG_INHERIT, 0))
-                throw std::runtime_error{"Can not create stderr pipe. " + get_error_message()};
+                throw std::runtime_error{"Failed to create stderr pipe. " + get_error_message()};
     #endif
 
         args.insert(std::begin(args), path);
@@ -326,7 +326,7 @@ public:
 
         PROCESS_INFORMATION process_info{};
         if(!CreateProcessW(std::data(native_path), null_or_data(args_str), nullptr, nullptr, TRUE, 0, nullptr, null_or_data(native_working_directory), &startup_info, &process_info))
-            throw std::runtime_error{"Can not create process. " + get_error_message()};
+            throw std::runtime_error{"Failed to create process. " + get_error_message()};
 
         m_id = static_cast<id>(process_info.dwProcessId);
         m_handle = process_info.hProcess;
@@ -401,10 +401,10 @@ public:
         assert(joinable() && "nes::process::join() called with joinable() returning false.");
 
         if(WaitForSingleObject(m_handle, INFINITE))
-            throw std::runtime_error{"Can not join the process. " + get_error_message()};
+            throw std::runtime_error{"Failed to join the process. " + get_error_message()};
 
         if(!GetExitCodeProcess(m_handle, reinterpret_cast<DWORD*>(&m_return_code)))
-            throw std::runtime_error{"Can not get the return code of the process. " + get_error_message()};
+            throw std::runtime_error{"Failed to get the return code of the process. " + get_error_message()};
 
         close_process();
     }
@@ -421,7 +421,7 @@ public:
 
         DWORD result = WaitForSingleObject(m_handle, 0);
         if(result == WAIT_FAILED)
-            throw std::runtime_error{"Can not get the state of the process. " + get_error_message()};
+            throw std::runtime_error{"Failed to get the state of the process. " + get_error_message()};
 
         return result == WAIT_TIMEOUT;
     }
@@ -490,7 +490,7 @@ private:
         out_path.resize(required_size);
 
         if(!MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), std::data(out_path), std::size(out_path)))
-            throw std::runtime_error{"Can not convert the path to wide."};
+            throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
@@ -561,7 +561,7 @@ inline std::string working_directory()
     path.resize(required_size);
 
     if(!WideCharToMultiByte(CP_UTF8, 0, std::data(native_path), std::size(native_path), std::data(path), std::size(path), nullptr, nullptr))
-        throw std::runtime_error{"Can not convert the path to UTF-8."};
+        throw std::runtime_error{"Failed to convert the path to UTF-8."};
 
     return path;
 }
@@ -573,7 +573,7 @@ inline bool change_working_directory(const std::string& path)
     native_path.resize(required_size);
 
     if(!MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), std::data(native_path), std::size(native_path)))
-        throw std::runtime_error{"Can not convert the path to wide."};
+        throw std::runtime_error{"Failed to convert the path to wide."};
 
     return SetCurrentDirectoryW(std::data(native_path));
 }
@@ -799,13 +799,13 @@ public:
         impl::auto_handle stderr_fd[2]{};
 
         if(static_cast<bool>(options & process_options::grab_stdin) && pipe(reinterpret_cast<int*>(stdin_fd)))
-            throw std::runtime_error{"Can not create stdin pipe. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to create stdin pipe. " + std::string{strerror(errno)}};
 
         if(static_cast<bool>(options & process_options::grab_stdout) && pipe(reinterpret_cast<int*>(stdout_fd)))
-            throw std::runtime_error{"Can not create stdout pipe. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to create stdout pipe. " + std::string{strerror(errno)}};
 
         if(static_cast<bool>(options & process_options::grab_stderr) && pipe(reinterpret_cast<int*>(stderr_fd)))
-            throw std::runtime_error{"Can not create stderr pipe. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to create stderr pipe. " + std::string{strerror(errno)}};
 
         const bool standard_streams{static_cast<bool>(options & process_options::grab_stdin) || static_cast<bool>(options & process_options::grab_stdout) || static_cast<bool>(options & process_options::grab_stderr)};
     #else
@@ -819,7 +819,7 @@ public:
 
             if(id < 0)
             {
-                throw std::runtime_error{"Can not create process. " + std::string{strerror(errno)}};
+                throw std::runtime_error{"Failed to create process. " + std::string{strerror(errno)}};
             }
             else if(id == 0)
             {
@@ -833,7 +833,7 @@ public:
 
             if(id < 0)
             {
-                throw std::runtime_error{"Can not create process. " + std::string{strerror(errno)}};
+                throw std::runtime_error{"Failed to create process. " + std::string{strerror(errno)}};
             }
             else if(id == 0)
             {
@@ -920,7 +920,7 @@ public:
 
         int return_code{};
         if(waitpid(m_id, &return_code, 0) == -1)
-            throw std::runtime_error{"Can not join the process. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to join the process. " + std::string{strerror(errno)}};
 
         m_id = -1;
         m_return_code = WEXITSTATUS(return_code);
@@ -1016,7 +1016,7 @@ inline std::string working_directory()
         if(errno == ERANGE)
             path.resize(std::size(path) * 2);
         else
-            throw std::runtime_error{"Can not get the current working directory. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to get the current working directory. " + std::string{strerror(errno)}};
     }
 
     path.resize(path.find_first_of('\0'));

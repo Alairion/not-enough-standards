@@ -161,7 +161,7 @@ public:
 
         m_handle = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, static_cast<DWORD>(size >> 32), static_cast<DWORD>(size), std::data(native_name));
         if(!m_handle || GetLastError() == ERROR_ALREADY_EXISTS)
-            throw std::runtime_error{"Can not create shared memory. " + get_error_message()};
+            throw std::runtime_error{"Failed to create shared memory. " + get_error_message()};
     }
 
     explicit shared_memory(const std::string& name, shared_memory_option options = shared_memory_option::none)
@@ -173,7 +173,7 @@ public:
 
         m_handle = OpenFileMappingW(access, FALSE, std::data(native_name));
         if(!m_handle)
-            throw std::runtime_error{"Can not open shared memory. " + get_error_message()};
+            throw std::runtime_error{"Failed to open shared memory. " + get_error_message()};
     }
 
     ~shared_memory()
@@ -210,7 +210,7 @@ public:
 
         auto* ptr{MapViewOfFile(m_handle, access, static_cast<DWORD>(aligned_offset >> 32), static_cast<DWORD>(aligned_offset), real_size)};
         if(!ptr)
-            throw std::runtime_error{"Can not map shared memory. " + get_error_message()};
+            throw std::runtime_error{"Failed to map shared memory. " + get_error_message()};
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 
@@ -233,7 +233,7 @@ public:
 
         void* ptr{MapViewOfFile(m_handle, access, static_cast<DWORD>(aligned_offset >> 32), static_cast<DWORD>(aligned_offset), real_size)};
         if(!ptr)
-            throw std::runtime_error{"Can not map shared memory. " + get_error_message()};
+            throw std::runtime_error{"Failed to map shared memory. " + get_error_message()};
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 
@@ -261,7 +261,7 @@ private:
         out_path.resize(required_size);
 
         if(!MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), std::data(out_path), std::size(out_path)))
-            throw std::runtime_error{"Can not convert the path to wide."};
+            throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
@@ -399,12 +399,12 @@ public:
 
         m_handle = shm_open(std::data(native_name), O_RDWR | O_CREAT | O_TRUNC, 0660);
         if(m_handle == -1)
-            throw std::runtime_error{"Can not create shared memory. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to create shared memory. " + std::string{strerror(errno)}};
 
         if(ftruncate(m_handle, static_cast<off_t>(size)) == -1)
         {
             close(m_handle);
-            throw std::runtime_error{"Can not set shared memory size. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to set shared memory size. " + std::string{strerror(errno)}};
         }
     }
 
@@ -417,7 +417,7 @@ public:
 
         m_handle = shm_open(std::data(native_name), access, 0660);
         if(m_handle == -1)
-            throw std::runtime_error{"Can not open shared memory. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to open shared memory. " + std::string{strerror(errno)}};
     }
 
     ~shared_memory()
@@ -454,7 +454,7 @@ public:
 
         auto* ptr{mmap(nullptr, real_size, access, MAP_SHARED, m_handle, static_cast<off_t>(aligned_offset))};
         if(ptr == MAP_FAILED)
-            throw std::runtime_error{"Can not map shared memory. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to map shared memory. " + std::string{strerror(errno)}};
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 
@@ -477,7 +477,7 @@ public:
 
         auto* ptr{mmap(nullptr, real_size, access, MAP_SHARED, m_handle, static_cast<off_t>(aligned_offset))};
         if(ptr == MAP_FAILED)
-            throw std::runtime_error{"Can not map shared memory. " + std::string{strerror(errno)}};
+            throw std::runtime_error{"Failed to map shared memory. " + std::string{strerror(errno)}};
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 

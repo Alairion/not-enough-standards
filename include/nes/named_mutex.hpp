@@ -73,11 +73,11 @@ struct named_mutex_base
             {
                 handle = OpenMutexW(SYNCHRONIZE, FALSE, std::data(native_name));
                 if(!handle)
-                    throw std::runtime_error{"Can not open named mutex. " + get_error_message()};
+                    throw std::runtime_error{"Failed to open named mutex. " + get_error_message()};
             }
             else
             {
-                throw std::runtime_error{"Can not create named mutex. " + get_error_message()};
+                throw std::runtime_error{"Failed to create named mutex. " + get_error_message()};
             }
         }
 
@@ -94,7 +94,7 @@ struct named_mutex_base
         out_path.resize(required_size);
 
         if(!MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), std::data(out_path), std::size(out_path)))
-            throw std::runtime_error{"Can not convert the path to wide."};
+            throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
@@ -267,19 +267,19 @@ inline mutex_base create_or_open_mutex(const std::string& name, bool recursive)
 
     int shm_handle{shm_open(std::data(native_name), O_RDWR | O_CREAT, 0660)};
     if(shm_handle == -1)
-        throw std::runtime_error{"Can not allocate space for named mutex. " + std::string{strerror(errno)}};
+        throw std::runtime_error{"Failed to allocate space for named mutex. " + std::string{strerror(errno)}};
 
     if(ftruncate(shm_handle, sizeof(mutex_data)) == -1)
     {
         close(shm_handle);
-        throw std::runtime_error{"Can not truncate shared memory for named mutex. " + std::string{strerror(errno)}};
+        throw std::runtime_error{"Failed to truncate shared memory for named mutex. " + std::string{strerror(errno)}};
     }
 
     auto* ptr{reinterpret_cast<mutex_data*>(mmap(nullptr, sizeof(mutex_data), PROT_READ | PROT_WRITE, MAP_SHARED, shm_handle, 0))};
     if(ptr == MAP_FAILED)
     {
         close(shm_handle);
-        throw std::runtime_error{"Can not map shared memory for named mutex. " + std::string{strerror(errno)}};
+        throw std::runtime_error{"Failed to map shared memory for named mutex. " + std::string{strerror(errno)}};
     }
 
     if(!ptr->opened)
@@ -296,17 +296,17 @@ inline mutex_base create_or_open_mutex(const std::string& name, bool recursive)
         };
 
         if(auto error = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED); error != 0)
-            clean_and_throw("Can not set process shared attribute of mutex. ", error);
+            clean_and_throw("Failed to set process shared attribute of mutex. ", error);
 
         if(auto error = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST); error != 0)
-            clean_and_throw("Can not set robust attribute of mutex. ", error);
+            clean_and_throw("Failed to set robust attribute of mutex. ", error);
 
         if(recursive)
             if(auto error = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE); error != 0)
-                clean_and_throw("Can not set recursive attribute of mutex. ", error);
+                clean_and_throw("Failed to set recursive attribute of mutex. ", error);
 
         if(auto error = pthread_mutex_init(&ptr->mutex, &attr); error != 0)
-            clean_and_throw("Can not init mutex. ", error);
+            clean_and_throw("Failed to init mutex. ", error);
 
         pthread_mutexattr_destroy(&attr);
 
@@ -330,7 +330,7 @@ inline void lock_mutex(mutex_base& mutex)
     if(error == EOWNERDEAD)
         pthread_mutex_consistent(&mutex.data->mutex);
     else if(error != 0)
-        throw std::runtime_error{"Can not lock mutex. " +  std::string{strerror(error)}};
+        throw std::runtime_error{"Failed to lock mutex. " +  std::string{strerror(error)}};
 }
 
 inline bool try_lock_mutex(mutex_base& mutex)

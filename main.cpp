@@ -157,7 +157,7 @@ void named_pipe_example()
 
     nes::pipe_ostream os{"nes_example_pipe"};
     if(!os)
-        throw std::runtime_error{"Can not open pipe."};
+        throw std::runtime_error{"Failed to open pipe."};
 
     for(std::uint32_t i{1}; i < 20; ++i)
     {
@@ -275,7 +275,7 @@ void named_semaphore_example()
 
     nes::process other{other_path, std::vector<std::string>{"named semaphore example"}, nes::process_options::grab_stdout};
 
-    for(std::size_t i{0}; i < 8; ++i)
+    for(std::size_t i{}; i < 8; ++i)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds{100});
         semaphore.release();

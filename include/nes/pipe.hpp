@@ -268,7 +268,7 @@ private:
         out_path.resize(required_size);
 
         if(!MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), std::data(out_path), std::size(out_path)))
-            throw std::runtime_error{"Can not convert the path to wide."};
+            throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
@@ -449,7 +449,7 @@ std::pair<basic_pipe_istream<CharT, Traits>, basic_pipe_ostream<CharT, Traits>> 
     HANDLE output{};
 
     if(!CreatePipe(&input, &output, nullptr, 0))
-        throw std::runtime_error{"Can not create pipe"};
+        throw std::runtime_error{"Failed to create pipe"};
 
     return std::make_pair(basic_pipe_istream<CharT, Traits>{basic_pipe_streambuf<CharT, Traits>{input, std::ios_base::in}},
                           basic_pipe_ostream<CharT, Traits>{basic_pipe_streambuf<CharT, Traits>{output, std::ios_base::out}});
@@ -824,7 +824,7 @@ std::pair<basic_pipe_istream<CharT, Traits>, basic_pipe_ostream<CharT, Traits>> 
     int fd[2];
 
     if(pipe(fd))
-        throw std::runtime_error{"Can not create pipe"};
+        throw std::runtime_error{"Failed to create pipe"};
 
     return std::make_pair(basic_pipe_istream<CharT, Traits>{basic_pipe_streambuf<CharT, Traits>{fd[0], std::ios_base::in}},
                           basic_pipe_ostream<CharT, Traits>{basic_pipe_streambuf<CharT, Traits>{fd[1], std::ios_base::out}});
