@@ -29,10 +29,10 @@
 #ifndef NOT_ENOUGH_STANDARDS_NAMED_MUTEX
 #define NOT_ENOUGH_STANDARDS_NAMED_MUTEX
 
-#if __has_include(<windows.h>)
+#if defined(_WIN32)
     #define NES_WIN32_NAMED_MUTEX
     #include <windows.h>
-#elif __has_include(<unistd.h>)
+#elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
     #define NES_POSIX_NAMED_MUTEX
     #include <unistd.h>
     #include <pthread.h>

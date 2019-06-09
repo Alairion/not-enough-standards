@@ -29,10 +29,10 @@
 #ifndef NOT_ENOUGH_STANDARDS_SHARED_MEMORY
 #define NOT_ENOUGH_STANDARDS_SHARED_MEMORY
 
-#if __has_include(<windows.h>)
+#if defined(_WIN32)
     #define NES_WIN32_SHARED_MEMORY
     #include <windows.h>
-#elif __has_include(<unistd.h>)
+#elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
     #define NES_POSIX_SHARED_MEMORY
     #include <unistd.h>
     #include <fcntl.h>
