@@ -329,6 +329,8 @@ inline void lock_mutex(mutex_base& mutex)
     auto error{pthread_mutex_lock(&mutex.data->mutex)};
     if(error == EOWNERDEAD)
         pthread_mutex_consistent(&mutex.data->mutex);
+    else if(error != 0)
+        throw std::runtime_error{"Can not lock mutex. " +  std::string{strerror(error)}};
 }
 
 inline bool try_lock_mutex(mutex_base& mutex)
