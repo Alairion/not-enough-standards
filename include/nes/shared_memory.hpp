@@ -356,7 +356,11 @@ struct map_deleter
     void operator()(T* ptr) const noexcept
     {
         if(ptr)
-            munmap(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) & impl::allocation_granularity_mask), sizeof(T));
+        {
+            const auto base_address{reinterpret_cast<std::uintptr_t>(ptr) & impl::allocation_granularity_mask};
+
+            munmap(reinterpret_cast<void*>(base_address), static_cast<std::size_t>(reinterpret_cast<std::uintptr_t>(ptr) - base_address) + sizeof(T));
+        }
     }
 };
 
