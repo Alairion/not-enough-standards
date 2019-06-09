@@ -147,6 +147,7 @@ public:
 
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         m_handle = handle;
+        m_mode = mode;
     }
 
     bool is_open() const noexcept
