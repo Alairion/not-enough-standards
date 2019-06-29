@@ -494,13 +494,16 @@ public:
         return shared_map_t<T>{map<T>(offset, options)};
     }
 
-    unique_raw_map_t raw_map(std::uint64_t offset, std::size_t size, shared_memory_option options = shared_memory_option::none) const
+    template<typename T, typename ValueType = typename std::remove_extent<T>::type>
+    unique_map_t<T> map(std::uint64_t offset, std::size_t count, shared_memory_option options = (std::is_const<ValueType>::value ? shared_memory_option::constant : shared_memory_option::none)) const
     {
-        assert(m_handle != -1 && "nes::shared_memory::raw_map called with an invalid handle.");
+        static_assert(!impl::is_bounded_array<T>::value, "T is an statically sized array, use the other overload of map instead of this one (remove the second parameter).");
+        static_assert(impl::is_unbounded_array<T>::value, "T must be an array type, i.e. T[].");
+        assert(m_handle != -1 && "nes::shared_memory::map called with an invalid handle.");
 
         const auto access = static_cast<bool>(options & shared_memory_option::constant) ? PROT_READ : PROT_READ | PROT_WRITE;
         const auto aligned_offset{offset & impl::allocation_granularity_mask};
-        const auto real_size{static_cast<std::size_t>((offset - aligned_offset) + size)};
+        const auto real_size{static_cast<std::size_t>((offset - aligned_offset) + (sizeof(ValueType) * count))};
 
         auto* ptr{mmap(nullptr, real_size, access, MAP_SHARED, m_handle, static_cast<off_t>(aligned_offset))};
         if(ptr == MAP_FAILED)
@@ -508,12 +511,13 @@ public:
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 
-        return unique_raw_map_t{ptr, raw_map_deleter{real_size}};
+        return unique_map_t<T>{static_cast<ValueType*>(ptr), map_deleter<T>{count}};
     }
 
-    shared_raw_map_t shared_raw_map(std::uint64_t offset, std::size_t size, shared_memory_option options = shared_memory_option::none) const
+    template<typename T, typename ValueType = typename std::remove_extent<T>::type>
+    shared_map_t<T> shared_map(std::uint64_t offset, std::size_t count, shared_memory_option options = (std::is_const<ValueType>::value ? shared_memory_option::constant : shared_memory_option::none)) const
     {
-        return shared_raw_map_t{raw_map(offset, size, options)};
+        return shared_map_t<T>{map<T>(offset, count, options)};
     }
 
     native_handle_type native_handle() const noexcept
