@@ -486,7 +486,7 @@ public:
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 
-        return unique_map_t<T>{static_cast<T*>(ptr)};
+        return unique_map_t<T>{reinterpret_cast<T*>(ptr)};
     }
 
     template<typename T>
@@ -512,7 +512,7 @@ public:
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 
-        return unique_map_t<T>{static_cast<ValueType*>(ptr), map_deleter<T>{count}};
+        return unique_map_t<T>{reinterpret_cast<ValueType*>(ptr), map_deleter<T>{count}};
     }
 
     template<typename T, typename ValueType = typename std::remove_extent<T>::type>
