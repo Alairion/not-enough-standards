@@ -112,10 +112,30 @@ inline std::uintptr_t get_allocation_granularity() noexcept
 
 static const std::uintptr_t allocation_granularity_mask{~(get_allocation_granularity() - 1)};
 
+template<class T>
+struct is_unbounded_array: std::false_type {};
+template<class T>
+struct is_unbounded_array<T[]> : std::true_type {};
+
+template<class T>
+struct is_bounded_array: std::false_type {};
+template<class T, std::size_t N>
+struct is_bounded_array<T[N]> : std::true_type {};
+
 }
 
 template<typename T>
 struct map_deleter
+{
+    void operator()(T* ptr) const noexcept
+    {
+        if(ptr)
+            UnmapViewOfFile(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) & impl::allocation_granularity_mask));
+    }
+};
+
+template<typename T>
+struct map_deleter<T[]>
 {
     void operator()(T* ptr) const noexcept
     {
@@ -202,6 +222,7 @@ public:
     unique_map_t<T> map(std::uint64_t offset, shared_memory_option options = (std::is_const<T>::value ? shared_memory_option::constant : shared_memory_option::none)) const
     {
         static_assert(std::is_trivial<T>::value, "Behaviour is undefined if T is not a trivial type.");
+        static_assert(!impl::is_unbounded_array<T>::value, "T can not be an unbounded array type, i.e. T[]. Specify the size, or use the second overload if you don't know it at compile-time");
         assert(m_handle && "nes::shared_memory::map called with an invalid handle.");
 
         const DWORD access = static_cast<bool>(options & shared_memory_option::constant) ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS;
@@ -223,26 +244,30 @@ public:
         return shared_map_t<T>{map<T>(offset, options)};
     }
 
-    unique_raw_map_t raw_map(std::uint64_t offset, std::size_t size, shared_memory_option options = shared_memory_option::none) const
+    template<typename T, typename ValueType = typename std::remove_extent<T>::type>
+    unique_map_t<T> map(std::uint64_t offset, std::size_t count, shared_memory_option options = (std::is_const<ValueType>::value ? shared_memory_option::constant : shared_memory_option::none)) const
     {
-        assert(m_handle && "nes::shared_memory::raw_map called with an invalid handle.");
+        static_assert(!impl::is_bounded_array<T>::value, "T is an statically sized array, use the other overload of map instead of this one (remove the second parameter).");
+        static_assert(impl::is_unbounded_array<T>::value, "T must be an array type, i.e. T[].");
+        assert(m_handle && "nes::shared_memory::map called with an invalid handle.");
 
         const DWORD access = static_cast<bool>(options & shared_memory_option::constant) ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS;
         const auto aligned_offset{offset & impl::allocation_granularity_mask};
-        const auto real_size{static_cast<std::size_t>((offset - aligned_offset) + size)};
+        const auto real_size{static_cast<std::size_t>((offset - aligned_offset) + (sizeof(ValueType) * count))};
 
-        void* ptr{MapViewOfFile(m_handle, access, static_cast<DWORD>(aligned_offset >> 32), static_cast<DWORD>(aligned_offset), real_size)};
+        auto* ptr{MapViewOfFile(m_handle, access, static_cast<DWORD>(aligned_offset >> 32), static_cast<DWORD>(aligned_offset), real_size)};
         if(!ptr)
             throw std::runtime_error{"Failed to map shared memory. " + get_error_message()};
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 
-        return unique_raw_map_t{ptr};
+        return unique_map_t<T>{static_cast<ValueType*>(ptr)};
     }
 
-    shared_raw_map_t shared_raw_map(std::uint64_t offset, std::size_t size, shared_memory_option options = shared_memory_option::none) const
+    template<typename T>
+    shared_map_t<T> shared_map(std::uint64_t offset, std::size_t count, shared_memory_option options = (std::is_const<T>::value ? shared_memory_option::constant : shared_memory_option::none)) const
     {
-        return shared_raw_map_t{raw_map(offset, size, options)};
+        return shared_map_t<T>{map<T>(offset, count, options)};
     }
 
     native_handle_type native_handle() const noexcept
