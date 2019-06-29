@@ -66,7 +66,7 @@ void named_pipe_example()
 void shared_memory_example()
 {
     {
-        nes::shared_memory memory{"nes_example_shared_memory", nes::shared_memory_option::constant};
+        nes::shared_memory memory{"nes_example_shared_memory", nes::shared_memory_options::constant};
         std::cout << "Value in shared memory is: " << *memory.map<const std::uint64_t>(0) << std::endl;
     }
 

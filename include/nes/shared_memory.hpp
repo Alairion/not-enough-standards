@@ -56,48 +56,48 @@ namespace nes
 
 static constexpr const char* shared_memory_root = u8"Local\\";
 
-enum class shared_memory_option : std::uint32_t
+enum class shared_memory_options : std::uint32_t
 {
     none = 0x00,
     constant = 0x01
 };
 
-constexpr shared_memory_option operator&(shared_memory_option left, shared_memory_option right) noexcept
+constexpr shared_memory_options operator&(shared_memory_options left, shared_memory_options right) noexcept
 {
-    return static_cast<shared_memory_option>(static_cast<std::uint32_t>(left) & static_cast<std::uint32_t>(right));
+    return static_cast<shared_memory_options>(static_cast<std::uint32_t>(left) & static_cast<std::uint32_t>(right));
 }
 
-constexpr shared_memory_option& operator&=(shared_memory_option& left, shared_memory_option right) noexcept
+constexpr shared_memory_options& operator&=(shared_memory_options& left, shared_memory_options right) noexcept
 {
     left = left & right;
     return left;
 }
 
-constexpr shared_memory_option operator|(shared_memory_option left, shared_memory_option right) noexcept
+constexpr shared_memory_options operator|(shared_memory_options left, shared_memory_options right) noexcept
 {
-    return static_cast<shared_memory_option>(static_cast<std::uint32_t>(left) | static_cast<std::uint32_t>(right));
+    return static_cast<shared_memory_options>(static_cast<std::uint32_t>(left) | static_cast<std::uint32_t>(right));
 }
 
-constexpr shared_memory_option& operator|=(shared_memory_option& left, shared_memory_option right) noexcept
+constexpr shared_memory_options& operator|=(shared_memory_options& left, shared_memory_options right) noexcept
 {
     left = left | right;
     return left;
 }
 
-constexpr shared_memory_option operator^(shared_memory_option left, shared_memory_option right) noexcept
+constexpr shared_memory_options operator^(shared_memory_options left, shared_memory_options right) noexcept
 {
-    return static_cast<shared_memory_option>(static_cast<std::uint32_t>(left) ^ static_cast<std::uint32_t>(right));
+    return static_cast<shared_memory_options>(static_cast<std::uint32_t>(left) ^ static_cast<std::uint32_t>(right));
 }
 
-constexpr shared_memory_option& operator^=(shared_memory_option& left, shared_memory_option right) noexcept
+constexpr shared_memory_options& operator^=(shared_memory_options& left, shared_memory_options right) noexcept
 {
     left = left ^ right;
     return left;
 }
 
-constexpr shared_memory_option operator~(shared_memory_option value) noexcept
+constexpr shared_memory_options operator~(shared_memory_options value) noexcept
 {
-    return static_cast<shared_memory_option>(~static_cast<std::uint32_t>(value));
+    return static_cast<shared_memory_options>(~static_cast<std::uint32_t>(value));
 }
 
 namespace impl
@@ -171,12 +171,12 @@ public:
             throw std::runtime_error{"Failed to create shared memory. " + get_error_message()};
     }
 
-    explicit shared_memory(const std::string& name, shared_memory_option options = shared_memory_option::none)
+    explicit shared_memory(const std::string& name, shared_memory_options options = shared_memory_options::none)
     {
         assert(!std::empty(name) && "nes::shared_memory::shared_memory called with empty name.");
 
         const auto native_name{to_wide(shared_memory_root + name)};
-        const DWORD access = static_cast<bool>(options & shared_memory_option::constant) ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS;
+        const DWORD access = static_cast<bool>(options & shared_memory_options::constant) ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS;
 
         m_handle = OpenFileMappingW(access, FALSE, std::data(native_name));
         if(!m_handle)
@@ -206,13 +206,13 @@ public:
     }
 
     template<typename T>
-    unique_map_t<T> map(std::uint64_t offset, shared_memory_option options = (std::is_const<T>::value ? shared_memory_option::constant : shared_memory_option::none)) const
+    unique_map_t<T> map(std::uint64_t offset, shared_memory_options options = (std::is_const<T>::value ? shared_memory_options::constant : shared_memory_options::none)) const
     {
         static_assert(std::is_trivial<T>::value, "Behaviour is undefined if T is not a trivial type.");
         static_assert(!impl::is_unbounded_array<T>::value, "T can not be an unbounded array type, i.e. T[]. Specify the size, or use the second overload if you don't know it at compile-time");
         assert(m_handle && "nes::shared_memory::map called with an invalid handle.");
 
-        const DWORD access = static_cast<bool>(options & shared_memory_option::constant) ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS;
+        const DWORD access = static_cast<bool>(options & shared_memory_options::constant) ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS;
         const auto aligned_offset{offset & impl::allocation_granularity_mask};
         const auto real_size{static_cast<std::size_t>((offset - aligned_offset) + sizeof(T))};
 
@@ -226,19 +226,19 @@ public:
     }
 
     template<typename T>
-    shared_map_t<T> shared_map(std::uint64_t offset, shared_memory_option options = (std::is_const<T>::value ? shared_memory_option::constant : shared_memory_option::none)) const
+    shared_map_t<T> shared_map(std::uint64_t offset, shared_memory_options options = (std::is_const<T>::value ? shared_memory_options::constant : shared_memory_options::none)) const
     {
         return shared_map_t<T>{map<T>(offset, options)};
     }
 
     template<typename T, typename ValueType = typename std::remove_extent<T>::type>
-    unique_map_t<T> map(std::uint64_t offset, std::size_t count, shared_memory_option options = (std::is_const<ValueType>::value ? shared_memory_option::constant : shared_memory_option::none)) const
+    unique_map_t<T> map(std::uint64_t offset, std::size_t count, shared_memory_options options = (std::is_const<ValueType>::value ? shared_memory_options::constant : shared_memory_options::none)) const
     {
         static_assert(!impl::is_bounded_array<T>::value, "T is an statically sized array, use the other overload of map instead of this one (remove the second parameter).");
         static_assert(impl::is_unbounded_array<T>::value, "T must be an array type, i.e. T[].");
         assert(m_handle && "nes::shared_memory::map called with an invalid handle.");
 
-        const DWORD access = static_cast<bool>(options & shared_memory_option::constant) ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS;
+        const DWORD access = static_cast<bool>(options & shared_memory_options::constant) ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS;
         const auto aligned_offset{offset & impl::allocation_granularity_mask};
         const auto real_size{static_cast<std::size_t>((offset - aligned_offset) + (sizeof(ValueType) * count))};
 
@@ -252,7 +252,7 @@ public:
     }
 
     template<typename T, typename ValueType = typename std::remove_extent<T>::type>
-    shared_map_t<T> shared_map(std::uint64_t offset, std::size_t count, shared_memory_option options = (std::is_const<ValueType>::value ? shared_memory_option::constant : shared_memory_option::none)) const
+    shared_map_t<T> shared_map(std::uint64_t offset, std::size_t count, shared_memory_options options = (std::is_const<ValueType>::value ? shared_memory_options::constant : shared_memory_options::none)) const
     {
         return shared_map_t<T>{map<T>(offset, count, options)};
     }
@@ -306,48 +306,48 @@ namespace nes
 
 static constexpr const char* shared_memory_root = u8"/";
 
-enum class shared_memory_option : std::uint32_t
+enum class shared_memory_options : std::uint32_t
 {
     none = 0x00,
     constant = 0x01
 };
 
-constexpr shared_memory_option operator&(shared_memory_option left, shared_memory_option right) noexcept
+constexpr shared_memory_options operator&(shared_memory_options left, shared_memory_options right) noexcept
 {
-    return static_cast<shared_memory_option>(static_cast<std::uint32_t>(left) & static_cast<std::uint32_t>(right));
+    return static_cast<shared_memory_options>(static_cast<std::uint32_t>(left) & static_cast<std::uint32_t>(right));
 }
 
-constexpr shared_memory_option& operator&=(shared_memory_option& left, shared_memory_option right) noexcept
+constexpr shared_memory_options& operator&=(shared_memory_options& left, shared_memory_options right) noexcept
 {
     left = left & right;
     return left;
 }
 
-constexpr shared_memory_option operator|(shared_memory_option left, shared_memory_option right) noexcept
+constexpr shared_memory_options operator|(shared_memory_options left, shared_memory_options right) noexcept
 {
-    return static_cast<shared_memory_option>(static_cast<std::uint32_t>(left) | static_cast<std::uint32_t>(right));
+    return static_cast<shared_memory_options>(static_cast<std::uint32_t>(left) | static_cast<std::uint32_t>(right));
 }
 
-constexpr shared_memory_option& operator|=(shared_memory_option& left, shared_memory_option right) noexcept
+constexpr shared_memory_options& operator|=(shared_memory_options& left, shared_memory_options right) noexcept
 {
     left = left | right;
     return left;
 }
 
-constexpr shared_memory_option operator^(shared_memory_option left, shared_memory_option right) noexcept
+constexpr shared_memory_options operator^(shared_memory_options left, shared_memory_options right) noexcept
 {
-    return static_cast<shared_memory_option>(static_cast<std::uint32_t>(left) ^ static_cast<std::uint32_t>(right));
+    return static_cast<shared_memory_options>(static_cast<std::uint32_t>(left) ^ static_cast<std::uint32_t>(right));
 }
 
-constexpr shared_memory_option& operator^=(shared_memory_option& left, shared_memory_option right) noexcept
+constexpr shared_memory_options& operator^=(shared_memory_options& left, shared_memory_options right) noexcept
 {
     left = left ^ right;
     return left;
 }
 
-constexpr shared_memory_option operator~(shared_memory_option value) noexcept
+constexpr shared_memory_options operator~(shared_memory_options value) noexcept
 {
-    return static_cast<shared_memory_option>(~static_cast<std::uint32_t>(value));
+    return static_cast<shared_memory_options>(~static_cast<std::uint32_t>(value));
 }
 
 namespace impl
@@ -435,12 +435,12 @@ public:
         }
     }
 
-    explicit shared_memory(const std::string& name, shared_memory_option options = shared_memory_option::none)
+    explicit shared_memory(const std::string& name, shared_memory_options options = shared_memory_options::none)
     {
         assert(!std::empty(name) && "nes::shared_memory::shared_memory called with empty name.");
 
         const auto native_name{shared_memory_root + name};
-        const auto access = static_cast<bool>(options & shared_memory_option::constant) ? O_RDONLY : O_RDWR;
+        const auto access = static_cast<bool>(options & shared_memory_options::constant) ? O_RDONLY : O_RDWR;
 
         m_handle = shm_open(std::data(native_name), access, 0660);
         if(m_handle == -1)
@@ -470,13 +470,13 @@ public:
     }
 
     template<typename T>
-    unique_map_t<T> map(std::uint64_t offset, shared_memory_option options = (std::is_const<T>::value ? shared_memory_option::constant : shared_memory_option::none)) const
+    unique_map_t<T> map(std::uint64_t offset, shared_memory_options options = (std::is_const<T>::value ? shared_memory_options::constant : shared_memory_options::none)) const
     {
         static_assert(std::is_trivial<T>::value, "Behaviour is undefined if T is not a trivial type.");
         static_assert(!impl::is_unbounded_array<T>::value, "T can not be an unbounded array type, i.e. T[]. Specify the size, or use the second overload if you don't know it at compile-time");
         assert(m_handle != -1 && "nes::shared_memory::map called with an invalid handle.");
 
-        const auto access = static_cast<bool>(options & shared_memory_option::constant) ? PROT_READ : PROT_READ | PROT_WRITE;
+        const auto access = static_cast<bool>(options & shared_memory_options::constant) ? PROT_READ : PROT_READ | PROT_WRITE;
         const auto aligned_offset{offset & impl::allocation_granularity_mask};
         const auto real_size{static_cast<std::size_t>((offset - aligned_offset) + sizeof(T))};
 
@@ -490,19 +490,19 @@ public:
     }
 
     template<typename T>
-    shared_map_t<T> shared_map(std::uint64_t offset, shared_memory_option options = (std::is_const<T>::value ? shared_memory_option::constant : shared_memory_option::none)) const
+    shared_map_t<T> shared_map(std::uint64_t offset, shared_memory_options options = (std::is_const<T>::value ? shared_memory_options::constant : shared_memory_options::none)) const
     {
         return shared_map_t<T>{map<T>(offset, options)};
     }
 
     template<typename T, typename ValueType = typename std::remove_extent<T>::type>
-    unique_map_t<T> map(std::uint64_t offset, std::size_t count, shared_memory_option options = (std::is_const<ValueType>::value ? shared_memory_option::constant : shared_memory_option::none)) const
+    unique_map_t<T> map(std::uint64_t offset, std::size_t count, shared_memory_options options = (std::is_const<ValueType>::value ? shared_memory_options::constant : shared_memory_options::none)) const
     {
         static_assert(!impl::is_bounded_array<T>::value, "T is an statically sized array, use the other overload of map instead of this one (remove the second parameter).");
         static_assert(impl::is_unbounded_array<T>::value, "T must be an array type, i.e. T[].");
         assert(m_handle != -1 && "nes::shared_memory::map called with an invalid handle.");
 
-        const auto access = static_cast<bool>(options & shared_memory_option::constant) ? PROT_READ : PROT_READ | PROT_WRITE;
+        const auto access = static_cast<bool>(options & shared_memory_options::constant) ? PROT_READ : PROT_READ | PROT_WRITE;
         const auto aligned_offset{offset & impl::allocation_granularity_mask};
         const auto real_size{static_cast<std::size_t>((offset - aligned_offset) + (sizeof(ValueType) * count))};
 
@@ -516,7 +516,7 @@ public:
     }
 
     template<typename T, typename ValueType = typename std::remove_extent<T>::type>
-    shared_map_t<T> shared_map(std::uint64_t offset, std::size_t count, shared_memory_option options = (std::is_const<ValueType>::value ? shared_memory_option::constant : shared_memory_option::none)) const
+    shared_map_t<T> shared_map(std::uint64_t offset, std::size_t count, shared_memory_options options = (std::is_const<ValueType>::value ? shared_memory_options::constant : shared_memory_options::none)) const
     {
         return shared_map_t<T>{map<T>(offset, count, options)};
     }
