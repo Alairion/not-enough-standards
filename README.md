@@ -1,10 +1,10 @@
 # Not Enough Standards
 
-Not Enough Standards is a modern header-only C++17 library that provide platform-independent utilities. The goal of this library is to extend the standard library with recurent features, such as process management or shared library loading. To reach that goal the library is written in a very standard compliant way, from the coding-style to the naming convention.
+Not Enough Standards is a modern header-only C++17 library that provides platform-independent utilities. The goal of this library is to extend the standard library with recurent features, such as process management or shared library loading. To reach that goal the library is written in a very standard compliant way, from the coding-style to the naming convention.
 
 ## Features
 
-Not Enough Standards works on any posix compliant system, and also on Windows.
+Not Enough Standards works on any posix-compliant system and also on Windows.
 
 * Shared library loading
 * Process management
@@ -67,6 +67,7 @@ int main()
 
 int main(int argc, char** argv)
 {
+    //Output some informations about this process
     std::cout << "Hello world! I'm Other!\n";
     std::cout << "You gaved me " << argc << " arguments:";
     for(int i{}; i < argc; ++i)
