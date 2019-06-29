@@ -252,7 +252,7 @@ public:
     }
 
     template<typename T>
-    shared_map_t<T> shared_map(std::uint64_t offset, std::size_t count, shared_memory_option options = (std::is_const<T>::value ? shared_memory_option::constant : shared_memory_option::none)) const
+    shared_map_t<T> shared_map(std::uint64_t offset, std::size_t count, shared_memory_option options = (std::is_const<ValueType>::value ? shared_memory_option::constant : shared_memory_option::none)) const
     {
         return shared_map_t<T>{map<T>(offset, count, options)};
     }
