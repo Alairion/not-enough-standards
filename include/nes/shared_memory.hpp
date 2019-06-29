@@ -473,6 +473,7 @@ public:
     unique_map_t<T> map(std::uint64_t offset, shared_memory_option options = (std::is_const<T>::value ? shared_memory_option::constant : shared_memory_option::none)) const
     {
         static_assert(std::is_trivial<T>::value, "Behaviour is undefined if T is not a trivial type.");
+        static_assert(!impl::is_unbounded_array<T>::value, "T can not be an unbounded array type, i.e. T[]. Specify the size, or use the second overload if you don't know it at compile-time");
         assert(m_handle != -1 && "nes::shared_memory::map called with an invalid handle.");
 
         const auto access = static_cast<bool>(options & shared_memory_option::constant) ? PROT_READ : PROT_READ | PROT_WRITE;
