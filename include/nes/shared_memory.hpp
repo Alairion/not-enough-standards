@@ -360,6 +360,16 @@ inline std::uintptr_t get_allocation_granularity() noexcept
 
 static const std::uintptr_t allocation_granularity_mask{~(get_allocation_granularity() - 1)};
 
+template<class T>
+struct is_unbounded_array: std::false_type {};
+template<class T>
+struct is_unbounded_array<T[]> : std::true_type {};
+
+template<class T>
+struct is_bounded_array: std::false_type {};
+template<class T, std::size_t N>
+struct is_bounded_array<T[N]> : std::true_type {};
+
 }
 
 template<typename T>
@@ -377,26 +387,27 @@ struct map_deleter
 };
 
 template<typename T>
+struct map_deleter<T[]>
+{
+    void operator()(T* ptr) const noexcept
+    {
+        if(ptr)
+        {
+            const auto base_address{reinterpret_cast<std::uintptr_t>(ptr) & impl::allocation_granularity_mask};
+
+            munmap(reinterpret_cast<void*>(base_address), static_cast<std::size_t>(reinterpret_cast<std::uintptr_t>(ptr) - base_address) + (sizeof(T) * count));
+        }
+    }
+
+    std::size_t count{};
+};
+
+template<typename T>
 using unique_map_t = std::unique_ptr<T, map_deleter<T>>;
 template<typename T>
 using shared_map_t = std::shared_ptr<T>;
 template<typename T>
 using weak_map_t = std::weak_ptr<T>;
-
-struct raw_map_deleter
-{
-    void operator()(void* ptr) const noexcept
-    {
-        if(ptr)
-            munmap(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) & impl::allocation_granularity_mask), size);
-    }
-
-    std::size_t size{};
-};
-
-using unique_raw_map_t = std::unique_ptr<void, raw_map_deleter>;
-using shared_raw_map_t = std::shared_ptr<void>;
-using weak_raw_map_t = std::weak_ptr<void>;
 
 class shared_memory
 {
