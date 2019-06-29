@@ -151,19 +151,6 @@ using shared_map_t = std::shared_ptr<T>;
 template<typename T>
 using weak_map_t = std::weak_ptr<T>;
 
-struct raw_map_deleter
-{
-    void operator()(void* ptr) const noexcept
-    {
-        if(ptr)
-            UnmapViewOfFile(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) & impl::allocation_granularity_mask));
-    }
-};
-
-using unique_raw_map_t = std::unique_ptr<void, raw_map_deleter>;
-using shared_raw_map_t = std::shared_ptr<void>;
-using weak_raw_map_t = std::weak_ptr<void>;
-
 class shared_memory
 {
 public:
