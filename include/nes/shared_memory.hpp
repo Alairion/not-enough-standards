@@ -234,6 +234,7 @@ public:
     template<typename T, typename ValueType = typename std::remove_extent<T>::type>
     unique_map_t<T> map(std::uint64_t offset, std::size_t count, shared_memory_options options = (std::is_const<ValueType>::value ? shared_memory_options::constant : shared_memory_options::none)) const
     {
+        static_assert(std::is_trivial<ValueType>::value, "Behaviour is undefined if ValueType is not a trivial type.");
         static_assert(!impl::is_bounded_array<T>::value, "T is an statically sized array, use the other overload of map instead of this one (remove the second parameter).");
         static_assert(impl::is_unbounded_array<T>::value, "T must be an array type, i.e. T[].");
         assert(m_handle && "nes::shared_memory::map called with an invalid handle.");
@@ -498,6 +499,7 @@ public:
     template<typename T, typename ValueType = typename std::remove_extent<T>::type>
     unique_map_t<T> map(std::uint64_t offset, std::size_t count, shared_memory_options options = (std::is_const<ValueType>::value ? shared_memory_options::constant : shared_memory_options::none)) const
     {
+        static_assert(std::is_trivial<ValueType>::value, "Behaviour is undefined if ValueType is not a trivial type.");
         static_assert(!impl::is_bounded_array<T>::value, "T is an statically sized array, use the other overload of map instead of this one (remove the second parameter).");
         static_assert(impl::is_unbounded_array<T>::value, "T must be an array type, i.e. T[].");
         assert(m_handle != -1 && "nes::shared_memory::map called with an invalid handle.");
