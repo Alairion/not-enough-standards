@@ -115,7 +115,7 @@ public:
         return *this;
     }
 
-    void open(const std::string& name, std::ios_base::openmode mode)
+    bool open(const std::string& name, std::ios_base::openmode mode)
     {
         assert(!((mode & std::ios_base::in) && (mode & std::ios_base::out)) && "nes::basic_pipe_streambuf::open called with mode = std::ios_base::in | std::ios_base::out.");
 
@@ -133,12 +133,12 @@ public:
 
                 handle = CreateNamedPipeW(std::data(native_name), native_mode, PIPE_READMODE_BYTE | PIPE_WAIT, 1, buf_size, buf_size, 0, nullptr);
                 if(handle == INVALID_HANDLE_VALUE)
-                    return;
+                    return false;
 
                 if(!ConnectNamedPipe(handle, nullptr))
                 {
                     CloseHandle(handle);
-                    return;
+                    return false;
                 }
 
                 m_handle = handle;
@@ -148,6 +148,8 @@ public:
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         m_handle = handle;
         m_mode = mode;
+
+        return true;
     }
 
     bool is_open() const noexcept
@@ -527,7 +529,7 @@ public:
         return *this;
     }
 
-    void open(const std::string& name, std::ios_base::openmode mode)
+    bool open(const std::string& name, std::ios_base::openmode mode)
     {
         assert(!((mode & std::ios_base::in) && (mode & std::ios_base::out)) && "nes::basic_pipe_streambuf::open called with mode = std::ios_base::in | std::ios_base::out.");
 
@@ -535,16 +537,18 @@ public:
 
         const auto native_name{pipe_root + name};
         if(mkfifo(std::data(native_name), 0660) != 0 && errno != EEXIST)
-            return;
+            return false;
 
         const int native_mode{mode & std::ios_base::in ? O_RDONLY : O_WRONLY};
         int handle = ::open(std::data(native_name), native_mode);
         if(handle < 0)
-            return;
+            return false;
 
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         m_handle = handle;
         m_mode = mode;
+
+        return true;
     }
 
     bool is_open() const noexcept
