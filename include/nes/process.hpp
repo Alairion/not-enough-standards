@@ -556,7 +556,7 @@ inline std::string working_directory()
     const DWORD size{GetCurrentDirectoryW(0, nullptr)};
 
     std::wstring native_path{};
-    native_path.resize(size);
+    native_path.resize(static_cast<std::size_t>(size));
     GetCurrentDirectoryW(size, std::data(native_path));
 
     std::transform(std::begin(native_path), std::end(native_path), std::begin(native_path), [](wchar_t c){return c == L'\\' ? L'/' : c;});

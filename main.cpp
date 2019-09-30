@@ -4,6 +4,7 @@
 #include <shared_mutex>
 #include <iterator>
 #include <iomanip>
+#include <array>
 
 #include <nes/pipe.hpp>
 #include <nes/shared_library.hpp>

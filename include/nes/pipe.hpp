@@ -42,7 +42,7 @@
     #error "Not enough standards does not support this environment."
 #endif
 
-#include <array>
+#include <vector>
 #include <algorithm>
 #include <streambuf>
 #include <istream>
@@ -97,8 +97,8 @@ public:
     basic_pipe_streambuf& operator=(const basic_pipe_streambuf&) = delete;
 
     basic_pipe_streambuf(basic_pipe_streambuf&& other) noexcept
-    :parent_type{std::move(other)}
-    ,m_buffer{other.m_buffer}
+    :parent_type{other}
+    ,m_buffer{std::move(other.m_buffer)}
     ,m_handle{std::exchange(other.m_handle, INVALID_HANDLE_VALUE)}
     ,m_mode{std::exchange(other.m_mode, std::ios_base::openmode{})}
     {
@@ -107,8 +107,8 @@ public:
 
     basic_pipe_streambuf& operator=(basic_pipe_streambuf&& other) noexcept
     {
-        parent_type::operator=(std::move(other));
-        m_buffer = other.m_buffer;
+        parent_type::operator=(other);
+        m_buffer = std::move(other.m_buffer);
         m_handle = std::exchange(other.m_handle, INVALID_HANDLE_VALUE);
         m_mode = std::exchange(other.m_mode, std::ios_base::openmode{});
 
@@ -143,6 +143,7 @@ public:
             }
         }
 
+		m_buffer.resize(buf_size);
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         m_handle = handle;
         m_mode = mode;
@@ -176,6 +177,7 @@ private:
     :m_handle{handle}
     ,m_mode{mode}
     {
+		m_buffer.resize(buf_size);
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
     }
 
@@ -273,7 +275,7 @@ private:
     }
 
 private:
-    std::array<CharT, buf_size> m_buffer{};
+    std::vector<CharT> m_buffer{};
     HANDLE m_handle{INVALID_HANDLE_VALUE};
     std::ios_base::openmode m_mode{};
 };
@@ -510,7 +512,7 @@ public:
 
     basic_pipe_streambuf(basic_pipe_streambuf&& other) noexcept
     :parent_type{std::move(other)}
-    ,m_buffer{other.m_buffer}
+    ,m_buffer{ std::move(other.m_buffer)}
     ,m_handle{std::exchange(other.m_handle, 0)}
     ,m_mode{std::exchange(other.m_mode, std::ios_base::openmode{})}
     {
@@ -520,7 +522,7 @@ public:
     basic_pipe_streambuf& operator=(basic_pipe_streambuf&& other) noexcept
     {
         parent_type::operator=(std::move(other));
-        m_buffer = other.m_buffer;
+        m_buffer = std::move(other.m_buffer);
         m_handle = std::exchange(other.m_handle, 0);
         m_mode = std::exchange(other.m_mode, std::ios_base::openmode{});
 
@@ -542,6 +544,7 @@ public:
         if(handle < 0)
             return false;
 
+		m_buffer.resize(buf_size);
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         m_handle = handle;
         m_mode = mode;
@@ -572,10 +575,10 @@ private:
     friend std::pair<basic_pipe_istream<char_type, traits_type>, basic_pipe_ostream<char_type, traits_type>> make_anonymous_pipe<char_type, traits_type>();
 
     basic_pipe_streambuf(int handle, std::ios_base::openmode mode)
-	:parent_type{nullptr}
-    ,m_handle{handle}
+    :m_handle{handle}
     ,m_mode{mode}
     {
+		m_buffer.resize(buf_size);
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
     }
 
@@ -654,7 +657,7 @@ protected:
     }
 
 private:
-    std::array<CharT, buf_size> m_buffer{};
+	std::vector<CharT> m_buffer{};
     int m_handle{};
     std::ios_base::openmode m_mode{};
 };
