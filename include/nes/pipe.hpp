@@ -140,8 +140,6 @@ public:
                     CloseHandle(handle);
                     return false;
                 }
-
-                m_handle = handle;
             }
         }
 
@@ -164,7 +162,7 @@ public:
             sync();
 
             m_mode = std::ios_base::openmode{};
-            CloseHandle(m_handle);
+            CloseHandle(std::exchange(m_handle, INVALID_HANDLE_VALUE));
             parent_type::setp(nullptr, nullptr);
             parent_type::setg(nullptr, nullptr, nullptr);
         }
@@ -563,7 +561,7 @@ public:
             sync();
 
             m_mode = std::ios_base::openmode{};
-            ::close(m_handle);
+            ::close(std::exchange(other.m_handle, 0));
             parent_type::setp(nullptr, nullptr);
             parent_type::setg(nullptr, nullptr, nullptr);
         }
