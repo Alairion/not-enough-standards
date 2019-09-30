@@ -31,7 +31,13 @@
 
 #if defined(_WIN32)
     #define NES_WIN32_SHARED_LIBRARY
-    #include <windows.h>
+    #include <Windows.h>
+	#ifdef max
+		#undef max
+	#endif
+	#ifdef min
+		#undef min
+	#endif
 #elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
     #define NES_POSIX_SHARED_LIBRARY
     #include <dlfcn.h>
@@ -126,12 +132,11 @@ private:
     {
         std::transform(std::begin(path), std::end(path), std::begin(path), [](char c){return c == '/' ? '\\' : c;});
 
-        std::wstring out_path{};
-        const auto required_size = MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), nullptr, 0);
-        out_path.resize(required_size);
+		std::wstring out_path{};
+		out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
 
-        if(!MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), std::data(out_path), std::size(out_path)))
-            throw std::runtime_error{"Failed to convert the path to wide."};
+		if (!MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+			throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
@@ -142,7 +147,7 @@ private:
         out.resize(1024);
 
         const DWORD error{GetLastError()};
-        const DWORD out_size{FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, std::data(out), std::size(out), nullptr)};
+        const DWORD out_size{FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, std::data(out), static_cast<DWORD>(std::size(out)), nullptr)};
         out.resize(std::max(out_size - 2, DWORD{}));
 
         out += " (#" + std::to_string(error) + ")";

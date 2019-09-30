@@ -31,7 +31,7 @@
 
 #if defined(_WIN32)
     #define NES_WIN32_PIPE
-    #include <windows.h>
+    #include <Windows.h>
 #elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
     #define NES_POSIX_PIPE
     #include <unistd.h>
@@ -265,12 +265,11 @@ private:
 
         std::transform(std::begin(path), std::end(path), std::begin(path), [](char c){return c == '/' ? '\\' : c;});
 
-        std::wstring out_path{};
-        const auto required_size = MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), nullptr, 0);
-        out_path.resize(required_size);
+		std::wstring out_path{};
+		out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
 
-        if(!MultiByteToWideChar(CP_UTF8, 0, std::data(path), std::size(path), std::data(out_path), std::size(out_path)))
-            throw std::runtime_error{"Failed to convert the path to wide."};
+		if (!MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+			throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
@@ -299,7 +298,7 @@ public:
     basic_pipe_istream() = default;
 
     explicit basic_pipe_istream(const std::string& name, std::ios_base::openmode mode = std::ios_base::in)
-    :parent_type{}
+    :parent_type{nullptr}
     {
         parent_type::rdbuf(m_buffer.get());
         open(name, mode);
@@ -353,7 +352,7 @@ private:
     friend std::pair<basic_pipe_istream<char_type, traits_type>, basic_pipe_ostream<char_type, traits_type>> make_anonymous_pipe<char_type, traits_type>();
 
     basic_pipe_istream(basic_pipe_streambuf<char_type, traits_type> buffer)
-    :parent_type{}
+    :parent_type{nullptr}
     ,m_buffer{std::make_unique<basic_pipe_streambuf<char_type, traits_type>>(std::move(buffer))}
     {
         parent_type::rdbuf(m_buffer.get());
@@ -380,7 +379,7 @@ public:
     basic_pipe_ostream() = default;
 
     explicit basic_pipe_ostream(const std::string& name, std::ios_base::openmode mode = std::ios_base::out)
-    :parent_type{}
+    :parent_type{nullptr}
     {
         parent_type::rdbuf(m_buffer.get());
         open(name, mode);
@@ -434,7 +433,7 @@ private:
     friend std::pair<basic_pipe_istream<char_type, traits_type>, basic_pipe_ostream<char_type, traits_type>> make_anonymous_pipe<char_type, traits_type>();
 
     basic_pipe_ostream(basic_pipe_streambuf<char_type, traits_type> buffer)
-    :parent_type{}
+    :parent_type{nullptr}
     ,m_buffer{std::make_unique<basic_pipe_streambuf<char_type, traits_type>>(std::move(buffer))}
     {
         parent_type::rdbuf(m_buffer.get());
@@ -498,6 +497,7 @@ public:
     basic_pipe_streambuf() = default;
 
     explicit basic_pipe_streambuf(const std::string& name, std::ios_base::openmode mode)
+	:parent_type{nullptr}
     {
         open(name, mode);
     }
@@ -574,7 +574,8 @@ private:
     friend std::pair<basic_pipe_istream<char_type, traits_type>, basic_pipe_ostream<char_type, traits_type>> make_anonymous_pipe<char_type, traits_type>();
 
     basic_pipe_streambuf(int handle, std::ios_base::openmode mode)
-    :m_handle{handle}
+	:parent_type{nullptr}
+    ,m_handle{handle}
     ,m_mode{mode}
     {
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
@@ -677,7 +678,7 @@ public:
     basic_pipe_istream() = default;
 
     explicit basic_pipe_istream(const std::string& name, std::ios_base::openmode mode = std::ios_base::in)
-    :parent_type{}
+	:parent_type{nullptr}
     {
         parent_type::rdbuf(m_buffer.get());
         open(name, mode);
@@ -731,7 +732,7 @@ private:
     friend std::pair<basic_pipe_istream<char_type, traits_type>, basic_pipe_ostream<char_type, traits_type>> make_anonymous_pipe<char_type, traits_type>();
 
     basic_pipe_istream(basic_pipe_streambuf<char_type, traits_type> buffer)
-    :parent_type{}
+    :parent_type{nullptr}
     ,m_buffer{std::make_unique<basic_pipe_streambuf<char_type, traits_type>>(std::move(buffer))}
     {
         parent_type::rdbuf(m_buffer.get());
@@ -758,7 +759,7 @@ public:
     basic_pipe_ostream() = default;
 
     explicit basic_pipe_ostream(const std::string& name, std::ios_base::openmode mode = std::ios_base::out)
-    :parent_type{}
+    :parent_type{nullptr}
     {
         parent_type::rdbuf(m_buffer.get());
         open(name, mode);
@@ -812,7 +813,7 @@ private:
     friend std::pair<basic_pipe_istream<char_type, traits_type>, basic_pipe_ostream<char_type, traits_type>> make_anonymous_pipe<char_type, traits_type>();
 
     basic_pipe_ostream(basic_pipe_streambuf<char_type, traits_type> buffer)
-    :parent_type{}
+    :parent_type{nullptr}
     ,m_buffer{std::make_unique<basic_pipe_streambuf<char_type, traits_type>>(std::move(buffer))}
     {
         parent_type::rdbuf(m_buffer.get());

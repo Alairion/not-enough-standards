@@ -31,7 +31,7 @@
 
 #if defined(_WIN32)
     #define NES_WIN32_SEMAPHORE
-    #include <windows.h>
+    #include <Windows.h>
 #elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
     #define NES_POSIX_SEMAPHORE
     #include <unistd.h>
@@ -106,7 +106,7 @@ private:
         out.resize(1024);
 
         const DWORD error{GetLastError()};
-        const DWORD out_size{FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, std::data(out), std::size(out), nullptr)};
+        const DWORD out_size{FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, std::data(out), static_cast<DWORD>(std::size(out)), nullptr)};
         out.resize(std::max(out_size - 2, DWORD{}));
 
         out += " (#" + std::to_string(error) + ")";
@@ -186,7 +186,7 @@ private:
         out.resize(1024);
 
         const DWORD error{GetLastError()};
-        const DWORD out_size{FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, std::data(out), std::size(out), nullptr)};
+        const DWORD out_size{FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, std::data(out), static_cast<DWORD>(std::size(out)), nullptr)};
         out.resize(std::max(out_size - 2, DWORD{}));
 
         out += " (#" + std::to_string(error) + ")";
