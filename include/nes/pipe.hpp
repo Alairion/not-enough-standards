@@ -31,6 +31,8 @@
 
 #if defined(_WIN32)
     #define NES_WIN32_PIPE
+    #define NOMINMAX
+    #define WIN32_LEAN_AND_MEAN
     #include <Windows.h>
 #elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
     #define NES_POSIX_PIPE
@@ -143,7 +145,7 @@ public:
             }
         }
 
-		m_buffer.resize(buf_size);
+        m_buffer.resize(buf_size);
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         m_handle = handle;
         m_mode = mode;
@@ -177,7 +179,7 @@ private:
     :m_handle{handle}
     ,m_mode{mode}
     {
-		m_buffer.resize(buf_size);
+        m_buffer.resize(buf_size);
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
     }
 
@@ -265,11 +267,11 @@ private:
 
         std::transform(std::begin(path), std::end(path), std::begin(path), [](char c){return c == '/' ? '\\' : c;});
 
-		std::wstring out_path{};
-		out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
+        std::wstring out_path{};
+        out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
 
-		if (!MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
-			throw std::runtime_error{"Failed to convert the path to wide."};
+        if (!MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+            throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
@@ -497,7 +499,7 @@ public:
     basic_pipe_streambuf() = default;
 
     explicit basic_pipe_streambuf(const std::string& name, std::ios_base::openmode mode)
-	:parent_type{nullptr}
+    :parent_type{nullptr}
     {
         open(name, mode);
     }
@@ -544,7 +546,7 @@ public:
         if(handle < 0)
             return false;
 
-		m_buffer.resize(buf_size);
+        m_buffer.resize(buf_size);
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
         m_handle = handle;
         m_mode = mode;
@@ -578,7 +580,7 @@ private:
     :m_handle{handle}
     ,m_mode{mode}
     {
-		m_buffer.resize(buf_size);
+        m_buffer.resize(buf_size);
         parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
     }
 
@@ -657,7 +659,7 @@ protected:
     }
 
 private:
-	std::vector<CharT> m_buffer{};
+    std::vector<CharT> m_buffer{};
     int m_handle{};
     std::ios_base::openmode m_mode{};
 };
@@ -679,7 +681,7 @@ public:
     basic_pipe_istream() = default;
 
     explicit basic_pipe_istream(const std::string& name, std::ios_base::openmode mode = std::ios_base::in)
-	:parent_type{nullptr}
+    :parent_type{nullptr}
     {
         parent_type::rdbuf(m_buffer.get());
         open(name, mode);

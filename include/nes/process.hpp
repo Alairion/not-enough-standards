@@ -31,13 +31,9 @@
 
 #if defined(_WIN32)
     #define NES_WIN32_PROCESS
+    #define NOMINMAX
+    #define WIN32_LEAN_AND_MEAN
     #include <Windows.h>
-	#ifdef max
-		#undef max
-	#endif
-	#ifdef min
-		#undef min
-	#endif
 #elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
     #define NES_POSIX_PROCESS
     #include <unistd.h>

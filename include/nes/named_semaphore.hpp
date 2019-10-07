@@ -31,6 +31,8 @@
 
 #if defined(_WIN32)
     #define NES_WIN32_NAMED_SEMAPHORE
+    #define NOMINMAX
+    #define WIN32_LEAN_AND_MEAN
     #include <Windows.h>
 #elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
     #define NES_POSIX_NAMED_SEMAPHORE
@@ -119,11 +121,11 @@ private:
         if(std::empty(path))
             return {};
 
-		std::wstring out_path{};
-		out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
+        std::wstring out_path{};
+        out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
 
-		if (!MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
-			throw std::runtime_error{"Failed to convert the path to wide."};
+        if (!MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+            throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
@@ -226,11 +228,11 @@ private:
         if(std::empty(path))
             return {};
 
-		std::wstring out_path{};
-		out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
+        std::wstring out_path{};
+        out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
 
-		if (!MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
-			throw std::runtime_error{"Failed to convert the path to wide."};
+        if (!MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+            throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
     }
