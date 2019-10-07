@@ -31,8 +31,12 @@
 
 #if defined(_WIN32)
     #define NES_WIN32_SHARED_LIBRARY
-    #define NOMINMAX
-    #define WIN32_LEAN_AND_MEAN
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
     #include <Windows.h>
 #elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
     #define NES_POSIX_SHARED_LIBRARY
