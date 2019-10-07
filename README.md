@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 {
     //Output some informations about this process
     std::cout << "Hello world! I'm Other!\n";
-    std::cout << "You gaved me " << argc << " arguments:";
+    std::cout << "You gave me " << argc << " arguments:";
     for(int i{}; i < argc; ++i)
         std::cout << "[" << argv[i] << "] ";
     std::cout << '\n';
@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 Current process has id 3612
 Its current directory is "/..."
 Hello world! I'm Other!
-You gaved me 5 arguments:[not_enough_standards_other.exe] [Hey!] [\"12""\\\] [\42\] [It's "me"!] 
+You gave me 5 arguments:[not_enough_standards_other.exe] [Hey!] [\"12""\\\] [\42\] [It's "me"!] 
 My working directory is "/..."
 
 Other process ended with code: 0

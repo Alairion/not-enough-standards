@@ -57,7 +57,7 @@
 namespace nes
 {
 
-static constexpr const char* pipe_root = u8"\\\\.\\pipe\\";
+static constexpr const char pipe_root[] = u8"\\\\.\\pipe\\";
 
 template<typename CharT, typename Traits>
 class basic_pipe_istream;
@@ -470,7 +470,7 @@ using pipe_ostream = basic_pipe_ostream<char>;
 namespace nes
 {
 
-static constexpr const char* pipe_root = u8"/tmp/";
+static constexpr const char pipe_root[] = u8"/tmp/";
 
 template<typename CharT, typename Traits>
 class basic_pipe_istream;

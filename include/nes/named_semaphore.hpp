@@ -55,7 +55,7 @@
 namespace nes
 {
 
-static constexpr const char* named_semaphore_root = u8"Local\\";
+static constexpr const char named_semaphore_root[] = u8"Local\\";
 
 class named_semaphore
 {
@@ -262,7 +262,7 @@ private:
 namespace nes
 {
 
-static constexpr const char* named_semaphore_root = u8"/";
+static constexpr const char named_semaphore_root[] = u8"/";
 
 class named_semaphore
 {
