@@ -206,7 +206,7 @@ public:
 
     shared_memory& operator=(shared_memory&& other) noexcept
     {
-        m_handle = std::exchange(other.m_handle, nullptr);
+        m_handle = std::exchange(other.m_handle, m_handle);
 
         return *this;
     }
@@ -470,7 +470,7 @@ public:
 
     shared_memory& operator=(shared_memory&& other) noexcept
     {
-        m_handle = std::exchange(other.m_handle, -1);
+        m_handle = std::exchange(other.m_handle, m_handle);
 
         return *this;
     }

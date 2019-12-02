@@ -115,8 +115,8 @@ public:
     {
         parent_type::operator=(other);
         m_buffer = std::move(other.m_buffer);
-        m_handle = std::exchange(other.m_handle, INVALID_HANDLE_VALUE);
-        m_mode = std::exchange(other.m_mode, std::ios_base::openmode{});
+        m_handle = std::exchange(other.m_handle, m_handle);
+        m_mode = std::exchange(other.m_mode, m_mode);
 
         return *this;
     }
@@ -529,8 +529,8 @@ public:
     {
         parent_type::operator=(std::move(other));
         m_buffer = std::move(other.m_buffer);
-        m_handle = std::exchange(other.m_handle, 0);
-        m_mode = std::exchange(other.m_mode, std::ios_base::openmode{});
+        m_handle = std::exchange(other.m_handle, m_handle);
+        m_mode = std::exchange(other.m_mode, m_mode);
 
         return *this;
     }

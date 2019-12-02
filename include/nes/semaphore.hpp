@@ -75,7 +75,7 @@ public:
     ~semaphore()
     {
         if(m_handle)
-        CloseHandle(m_handle);
+            CloseHandle(m_handle);
     }
 
     semaphore(const semaphore&) = delete;

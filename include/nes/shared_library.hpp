@@ -101,8 +101,8 @@ public:
 
     shared_library& operator=(shared_library&& other) noexcept
     {
-        m_handle = std::exchange(other.m_handle, native_handle_type{});
-        m_need_free = std::exchange(other.m_need_free, false);
+        m_handle = std::exchange(other.m_handle, m_handle);
+        m_need_free = std::exchange(other.m_need_free, m_need_free);
 
         return *this;
     }
@@ -210,7 +210,7 @@ public:
 
     shared_library& operator=(shared_library&& other) noexcept
     {
-        m_handle = std::exchange(other.m_handle, native_handle_type{});
+        m_handle = std::exchange(other.m_handle, m_handle);
         return *this;
     }
 

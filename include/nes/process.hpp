@@ -130,7 +130,7 @@ public:
 
     auto_handle& operator=(auto_handle&& other) noexcept
     {
-        m_handle = std::exchange(other.m_handle, INVALID_HANDLE_VALUE);
+        m_handle = std::exchange(other.m_handle, m_handle);
 
         return *this;
     }
@@ -389,8 +389,8 @@ public:
         if(joinable())
             std::terminate();
 
-        m_id = std::exchange(other.m_id, id{});
-        m_return_code = std::exchange(other.m_return_code, return_code_type{});
+        m_id = std::exchange(other.m_id, m_id);
+        m_return_code = std::exchange(other.m_return_code, m_return_code);
         m_handle = std::move(other.m_handle);
         m_thread_handle = std::move(other.m_thread_handle);
     #ifdef NES_PROCESS_PIPE_EXTENSION
@@ -674,7 +674,7 @@ struct auto_handle
 
     auto_handle& operator=(auto_handle&& other) noexcept
     {
-        m_handle = std::exchange(other.m_handle, -1);
+        m_handle = std::exchange(other.m_handle, m_handle);
 
         return *this;
     }
@@ -906,8 +906,8 @@ public:
         if(joinable())
             std::terminate();
 
-        m_id = std::exchange(other.m_id, -1);
-        m_return_code = std::exchange(other.m_return_code, return_code_type{});
+        m_id = std::exchange(other.m_id, m_id);
+        m_return_code = std::exchange(other.m_return_code, m_return_code);
     #ifdef NES_PROCESS_PIPE_EXTENSION
         m_stdin_stream = std::move(other.m_stdin_stream);
         m_stdout_stream = std::move(other.m_stdout_stream);
