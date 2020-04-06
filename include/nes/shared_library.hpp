@@ -113,7 +113,7 @@ public:
         assert(!std::empty(symbol) && "nes::shared_library::load called with an empty symbol name.");
         assert(m_handle && "nes::shared_library::load called with invalid handle.");
 
-        return reinterpret_cast<Func>(reinterpret_cast<void*>(GetProcAddress(m_handle, std::data(symbol))));
+        return reinterpret_cast<Func>(reinterpret_cast<void(*)()>(GetProcAddress(m_handle, std::data(symbol))));
     }
 
     template<typename Func, typename = std::enable_if_t<std::is_function_v<Func>>>
