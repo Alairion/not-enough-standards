@@ -13,6 +13,8 @@
 #include <nes/named_mutex.hpp>
 #include <nes/semaphore.hpp>
 #include <nes/named_semaphore.hpp>
+#include <nes/int128.hpp>
+#include <nes/hash.hpp>
 
 #if defined(NES_WIN32_SHARED_LIBRARY)
     #define NES_EXAMPLE_EXPORT __declspec(dllexport)
@@ -288,10 +290,17 @@ void named_semaphore_example()
         other.join();
 }
 
+void hash_example()
+{
+    nes::hash<std::variant<std::string_view, double>> hash{};
+
+    std::cout << hash("Hello world!") << std::endl;
+}
+
 int main()
 {
     try
-    {
+    {/*
         shared_library_example();
         pipe_example();
         semaphore_example();
@@ -301,7 +310,8 @@ int main()
         shared_memory_example();
         named_mutex_example();
         timed_named_mutex_example();
-        named_semaphore_example();
+        named_semaphore_example();*/
+        hash_example();
     }
     catch(const std::exception& e)
     {
