@@ -190,7 +190,7 @@ struct hash<std::variant<Types...>, Kernel>
         {
             const auto visitor = [](auto&& value) -> std::size_t
             {
-                return hash<std::decay_t<decltype(value)>>{}(value);
+                return hash<std::decay_t<decltype(value)>, Kernel>{}(value);
             };
 
             const std::size_t base{std::visit(visitor, value)};
