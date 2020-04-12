@@ -294,7 +294,7 @@ void hash_example()
 {
     nes::hash<std::variant<std::string_view, double>> hash{};
 
-    std::cout << hash("Hello world!") << std::endl;
+    std::cout << nes::from_hash_value<std::uint64_t>(hash("Hello world!")) << std::endl;
 }
 
 int main()

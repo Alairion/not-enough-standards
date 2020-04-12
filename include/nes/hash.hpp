@@ -30,6 +30,8 @@
 #define NOT_ENOUGH_STANDARDS_HASH
 
 #include <cstdint>
+#include <cstring>
+#include <array>
 #include <memory>
 #include <string>
 #include <optional>
@@ -38,15 +40,44 @@
 namespace nes
 {
 
+template<typename WordT, std::size_t Size>
+using hash_value_t = std::array<WordT, Size>;
+
+template<typename WordT, std::size_t Size, typename T>
+hash_value_t<WordT, Size> to_hash_value(const T& value) noexcept
+{
+    static_assert(std::is_standard_layout_v<T>, "The given type can not be used as a hash value");
+    static_assert(sizeof(hash_value_t<WordT, Size>) == sizeof(T), "Types size does not match.");
+
+    hash_value_t<WordT, Size> output{};
+    std::memcpy(std::data(output), &value, sizeof(output));
+
+    return output;
+}
+
+template<typename T, typename WordT, std::size_t Size>
+T from_hash_value(const hash_value_t<WordT, Size>& value) noexcept
+{
+    static_assert(std::is_standard_layout_v<T>, "The given type can not be used as a hash value");
+
+    T output{};
+    std::memcpy(&output, std::data(value), sizeof(output));
+
+    return output;
+}
+
 namespace hash_kernels
 {
 
 /*
+[template<...>]
 struct kernel_name
 {
-    [constexpr] std::size_t operator()(const std::uint8_t* data, std::size_t size) const [noexcept]
+    using value_type = nes::hash_value_t<...>;
+
+    value_type operator()(const std::uint8_t* data, std::size_t size) const [noexcept]
     {
-        std::size_t hash_value{};
+        value_type hash_value{};
 
         //Compute hash from data
 
@@ -57,44 +88,42 @@ struct kernel_name
 
 struct fnv_1a
 {
-    constexpr std::size_t operator()(const std::uint8_t* data, std::size_t size) const noexcept
+    using value_type = hash_value_t<std::uint64_t, 1>;
+
+    value_type operator()(const std::uint8_t* data, std::size_t size) const noexcept
     {
-        if constexpr(sizeof(std::size_t) == sizeof(std::uint32_t)) //Support for 32-bits
+        constexpr std::uint64_t offset_basis{14695981039346656037ull};
+        constexpr std::uint64_t prime{1099511628211ull};
+
+        std::uint64_t value{offset_basis};
+        for(std::size_t i{}; i < size; ++i)
         {
-            constexpr std::size_t offset_basis{2166136261u};
-            constexpr std::size_t prime{16777619u};
-
-            std::size_t value{offset_basis};
-            for(std::size_t i{}; i < size; ++i)
-            {
-                value ^= data[i];
-                value *= prime;
-            }
-
-            return value;
+            value ^= data[i];
+            value *= prime;
         }
-        else
-        {
-            constexpr std::size_t offset_basis{14695981039346656037ull};
-            constexpr std::size_t prime{1099511628211ull};
 
-            std::size_t value{offset_basis};
-            for(std::size_t i{}; i < size; ++i)
-            {
-                value ^= data[i];
-                value *= prime;
-            }
-
-            return value;
-        }
+        return to_hash_value<std::uint64_t, 1>(value);
     }
 };
 
 }
 
-constexpr std::size_t hash_combine(std::size_t left, std::size_t right) noexcept //See boost::hash_combine
+template<typename T, typename = void>
+struct has_interger_type : std::false_type{};
+template<typename T>
+struct has_interger_type<T, std::void_t<typename T::integer_type>> : std::true_type{};
+template<typename T>
+static constexpr bool has_interger_type_v = has_interger_type<T>::value;
+
+template<typename Kernel>
+using kernel_hash_value_t = typename Kernel::value_type;
+
+template<typename Kernel>
+kernel_hash_value_t<Kernel> hash_combine(const kernel_hash_value_t<Kernel>& left, const kernel_hash_value_t<Kernel>& right) noexcept
 {
-    return left ^ (right + 0x9e3779b9u + (left << 6) + (left >> 2));
+    const std::pair pair{left, right};
+
+    return Kernel{}(reinterpret_cast<const std::uint8_t*>(&pair), sizeof(pair));
 }
 
 template<typename T, typename Kernel = hash_kernels::fnv_1a, typename Enable = void>
@@ -103,7 +132,9 @@ struct hash;
 template<typename T, typename Kernel>
 struct hash<T, Kernel, std::enable_if_t<std::is_arithmetic_v<T>>>
 {
-    constexpr std::size_t operator()(T value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
+    using value_type = kernel_hash_value_t<Kernel>;
+
+    value_type operator()(T value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
     {
         return Kernel{}(reinterpret_cast<const std::uint8_t*>(&value), sizeof(T));
     }
@@ -112,7 +143,9 @@ struct hash<T, Kernel, std::enable_if_t<std::is_arithmetic_v<T>>>
 template<class T, typename Kernel>
 struct hash<T*, Kernel>
 {
-    constexpr std::size_t operator()(T* value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
+    using value_type = kernel_hash_value_t<Kernel>;
+
+    value_type operator()(T* value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
     {
         return Kernel{}(reinterpret_cast<const std::uint8_t*>(&value), sizeof(T*));
     }
@@ -121,7 +154,9 @@ struct hash<T*, Kernel>
 template<typename CharT, typename Traits, typename Allocator, typename Kernel>
 struct hash<std::basic_string<CharT, Traits, Allocator>, Kernel>
 {
-    std::size_t operator()(const std::basic_string<CharT, Traits, Allocator>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
+    using value_type = kernel_hash_value_t<Kernel>;
+
+    value_type operator()(const std::basic_string<CharT, Traits, Allocator>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
     {
         return Kernel{}(reinterpret_cast<const std::uint8_t*>(std::data(value)), std::size(value) * sizeof(CharT));
     }
@@ -130,7 +165,9 @@ struct hash<std::basic_string<CharT, Traits, Allocator>, Kernel>
 template<typename CharT, typename Traits, typename Kernel>
 struct hash<std::basic_string_view<CharT, Traits>, Kernel>
 {
-    constexpr std::size_t operator()(const std::basic_string_view<CharT, Traits>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
+    using value_type = kernel_hash_value_t<Kernel>;
+
+    value_type operator()(const std::basic_string_view<CharT, Traits>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
     {
         return Kernel{}(reinterpret_cast<const std::uint8_t*>(std::data(value)), std::size(value) * sizeof(CharT));
     }
@@ -139,7 +176,9 @@ struct hash<std::basic_string_view<CharT, Traits>, Kernel>
 template<typename T, typename Kernel>
 struct hash<std::unique_ptr<T>, Kernel>
 {
-    std::size_t operator()(const std::unique_ptr<T>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
+    using value_type = kernel_hash_value_t<Kernel>;
+
+    value_type operator()(const std::unique_ptr<T>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
     {
         return hash<typename std::unique_ptr<T>::pointer, Kernel>{}(value.get());
     }
@@ -148,7 +187,9 @@ struct hash<std::unique_ptr<T>, Kernel>
 template<typename T, typename Kernel>
 struct hash<std::shared_ptr<T>, Kernel>
 {
-    std::size_t operator()(const std::shared_ptr<T>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
+    using value_type = kernel_hash_value_t<Kernel>;
+
+    value_type operator()(const std::shared_ptr<T>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
     {
         return hash<typename std::shared_ptr<T>::pointer, Kernel>{}(value.get());
     }
@@ -157,46 +198,52 @@ struct hash<std::shared_ptr<T>, Kernel>
 template<typename T, typename Kernel>
 struct hash<std::optional<T>, Kernel>
 {
-    constexpr std::size_t operator()(const std::optional<T>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
+    using value_type = kernel_hash_value_t<Kernel>;
+
+    value_type operator()(const std::optional<T>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
     {
         if(value.has_value())
         {
             return hash<std::remove_const_t<T>, Kernel>{}(value.value());
         }
 
-        return 4000044773u;
+        return {};
     }
 };
 
 template<typename Kernel>
 struct hash<std::monostate, Kernel>
 {
-    constexpr std::size_t operator()(std::monostate) const noexcept
+    using value_type = kernel_hash_value_t<Kernel>;
+
+    value_type operator()(std::monostate) const noexcept
     {
-        return 4194968299u;
+        return {};
     }
 };
 
 template<typename... Types, typename Kernel>
 struct hash<std::variant<Types...>, Kernel>
 {
-    constexpr std::size_t operator()(const std::variant<Types...>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
+    using value_type = kernel_hash_value_t<Kernel>;
+
+    value_type operator()(const std::variant<Types...>& value) const noexcept(noexcept(Kernel{}(std::declval<const std::uint8_t*>(), std::declval<std::size_t>())))
     {
         if(value.valueless_by_exception())
         {
-            return 3194267473u;
+            return {};
         }
         else
         {
-            const auto visitor = [](auto&& value) -> std::size_t
+            const auto visitor = [](auto&& value) -> value_type
             {
                 return hash<std::decay_t<decltype(value)>, Kernel>{}(value);
             };
 
-            const std::size_t base{std::visit(visitor, value)};
-            const std::size_t combine{hash<std::size_t, Kernel>{}(value.index())};
+            const value_type base{std::visit(visitor, value)};
+            const value_type combine{hash<std::size_t, Kernel>{}(value.index())};
 
-            return hash_combine(base, combine);
+            return hash_combine<Kernel>(base, combine);
         }
     }
 };
