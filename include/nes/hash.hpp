@@ -106,14 +106,16 @@ struct fnv_1a
     }
 };
 
-}
+template<typename Kernel>
+struct is_noexcept : std::integral_constant<bool, noexcept(std::declval<Kernel>().operator()(std::declval<const std::uint8_t*>(), std::declval<std::size_t>()))>
+{
 
-template<typename T, typename = void>
-struct has_interger_type : std::false_type{};
-template<typename T>
-struct has_interger_type<T, std::void_t<typename T::integer_type>> : std::true_type{};
-template<typename T>
-static constexpr bool has_interger_type_v = has_interger_type<T>::value;
+};
+
+template<typename Kernel>
+inline constexpr bool is_noexcept_v{is_noexcept<Kernel>::value};
+
+}
 
 template<typename Kernel>
 using kernel_hash_value_t = typename Kernel::value_type;

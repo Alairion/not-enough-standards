@@ -61,7 +61,7 @@
 namespace nes
 {
 
-static constexpr const char named_mutex_root[] = u8"Local\\";
+inline constexpr const char named_mutex_root[] = u8"Local\\";
 
 namespace impl
 {
@@ -249,7 +249,7 @@ class recursive_timed_named_mutex : public timed_named_mutex
 namespace nes
 {
 
-static constexpr const char named_mutex_root[] = u8"/";
+inline constexpr const char named_mutex_root[] = u8"/";
 
 namespace impl
 {

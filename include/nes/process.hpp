@@ -172,7 +172,7 @@ enum class process_options : std::uint32_t
 #ifdef NES_PROCESS_PIPE_EXTENSION
     grab_stdout = 0x10,
     grab_stderr = 0x20,
-    grab_stdin = 0x40 
+    grab_stdin = 0x40
 #endif
 };
 
@@ -562,7 +562,7 @@ inline std::string working_directory()
     std::transform(std::begin(native_path), std::end(native_path), std::begin(native_path), [](wchar_t c){return c == L'\\' ? L'/' : c;});
 
     std::string path{};
-    path.resize(static_cast<std::size_t>(WideCharToMultiByte(CP_UTF8, 0, std::data(native_path), -1, nullptr, 0, 0, 0)));
+    path.resize(static_cast<std::size_t>(WideCharToMultiByte(CP_UTF8, 0, std::data(native_path), -1, nullptr, 0, nullptr, nullptr)));
 
     if(!WideCharToMultiByte(CP_UTF8, 0, std::data(native_path), static_cast<int>(std::size(native_path)), std::data(path), static_cast<int>(std::size(path)), nullptr, nullptr))
         throw std::runtime_error{"Failed to convert the path to UTF-8."};
@@ -596,9 +596,10 @@ namespace std
     template<>
     struct hash<nes::process::id>
     {
-        typedef nes::process::id argument_type;
-        typedef std::size_t result_type;
-        result_type operator()(argument_type const& s) const noexcept
+        using argument_type = nes::process::id;
+        using result_type = std::size_t;
+
+        result_type operator()(const argument_type& s) const noexcept
         {
             return std::hash<DWORD>{}(static_cast<DWORD>(s));
         }
@@ -1047,9 +1048,10 @@ namespace std
     template<>
     struct hash<nes::process::id>
     {
-        typedef nes::process::id argument_type;
-        typedef std::size_t result_type;
-        result_type operator()(argument_type const& s) const noexcept
+        using argument_type = nes::process::id;
+        using result_type = std::size_t;
+
+        result_type operator()(const argument_type& s) const noexcept
         {
             return std::hash<int>{}(static_cast<int>(s));
         }
