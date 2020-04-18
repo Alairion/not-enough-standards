@@ -102,7 +102,7 @@ struct fnv_1a
             value *= prime;
         }
 
-        return to_hash_value<std::uint64_t, 1>(value);
+        return value_type{value};
     }
 };
 
