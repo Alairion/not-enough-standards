@@ -90,7 +90,7 @@ struct fnv_1a
 {
     using value_type = hash_value_t<std::uint64_t, 1>;
 
-    value_type operator()(const std::uint8_t* data, std::size_t size) const noexcept
+    constexpr value_type operator()(const std::uint8_t* data, std::size_t size) const noexcept
     {
         constexpr std::uint64_t offset_basis{14695981039346656037ull};
         constexpr std::uint64_t prime{1099511628211ull};
@@ -128,7 +128,7 @@ template<typename Kernel>
 using kernel_hash_value_t = typename Kernel::value_type;
 
 template<typename Kernel>
-kernel_hash_value_t<Kernel> hash_combine(const kernel_hash_value_t<Kernel>& left, const kernel_hash_value_t<Kernel>& right) noexcept
+constexpr kernel_hash_value_t<Kernel> hash_combine(const kernel_hash_value_t<Kernel>& left, const kernel_hash_value_t<Kernel>& right) noexcept
 {
     const std::pair pair{left, right};
 
@@ -143,7 +143,7 @@ struct hash<T, Kernel, std::enable_if_t<std::is_arithmetic_v<T>>>
 {
     using value_type = kernel_hash_value_t<Kernel>;
 
-    value_type operator()(T value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
+    constexpr value_type operator()(T value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
     {
         return Kernel{}(reinterpret_cast<const std::uint8_t*>(&value), sizeof(T));
     }
@@ -154,7 +154,7 @@ struct hash<T*, Kernel>
 {
     using value_type = kernel_hash_value_t<Kernel>;
 
-    value_type operator()(T* value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
+    constexpr value_type operator()(T* value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
     {
         return Kernel{}(reinterpret_cast<const std::uint8_t*>(&value), sizeof(T*));
     }
@@ -165,7 +165,7 @@ struct hash<std::basic_string<CharT, Traits, Allocator>, Kernel>
 {
     using value_type = kernel_hash_value_t<Kernel>;
 
-    value_type operator()(const std::basic_string<CharT, Traits, Allocator>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
+    constexpr value_type operator()(const std::basic_string<CharT, Traits, Allocator>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
     {
         return Kernel{}(reinterpret_cast<const std::uint8_t*>(std::data(value)), std::size(value) * sizeof(CharT));
     }
@@ -176,7 +176,7 @@ struct hash<std::basic_string_view<CharT, Traits>, Kernel>
 {
     using value_type = kernel_hash_value_t<Kernel>;
 
-    value_type operator()(const std::basic_string_view<CharT, Traits>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
+    constexpr value_type operator()(const std::basic_string_view<CharT, Traits>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
     {
         return Kernel{}(reinterpret_cast<const std::uint8_t*>(std::data(value)), std::size(value) * sizeof(CharT));
     }
@@ -187,7 +187,7 @@ struct hash<std::unique_ptr<T>, Kernel>
 {
     using value_type = kernel_hash_value_t<Kernel>;
 
-    value_type operator()(const std::unique_ptr<T>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
+    constexpr value_type operator()(const std::unique_ptr<T>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
     {
         return hash<typename std::unique_ptr<T>::pointer, Kernel>{}(value.get());
     }
@@ -198,7 +198,7 @@ struct hash<std::shared_ptr<T>, Kernel>
 {
     using value_type = kernel_hash_value_t<Kernel>;
 
-    value_type operator()(const std::shared_ptr<T>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
+    constexpr value_type operator()(const std::shared_ptr<T>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
     {
         return hash<typename std::shared_ptr<T>::pointer, Kernel>{}(value.get());
     }
@@ -209,7 +209,7 @@ struct hash<std::optional<T>, Kernel>
 {
     using value_type = kernel_hash_value_t<Kernel>;
 
-    value_type operator()(const std::optional<T>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
+    constexpr value_type operator()(const std::optional<T>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
     {
         if(value.has_value())
         {
@@ -225,7 +225,7 @@ struct hash<std::monostate, Kernel>
 {
     using value_type = kernel_hash_value_t<Kernel>;
 
-    value_type operator()(std::monostate) const noexcept
+    constexpr value_type operator()(std::monostate) const noexcept
     {
         return {};
     }
@@ -236,7 +236,7 @@ struct hash<std::variant<Types...>, Kernel>
 {
     using value_type = kernel_hash_value_t<Kernel>;
 
-    value_type operator()(const std::variant<Types...>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
+    constexpr value_type operator()(const std::variant<Types...>& value) const noexcept(hash_kernels::is_noexcept_v<Kernel>)
     {
         if(value.valueless_by_exception())
         {
