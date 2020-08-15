@@ -5,7 +5,7 @@
 #include <iterator>
 #include <iomanip>
 #include <array>
-
+/*
 #include <nes/pipe.hpp>
 #include <nes/shared_library.hpp>
 #include <nes/process.hpp>
@@ -13,9 +13,9 @@
 #include <nes/named_mutex.hpp>
 #include <nes/semaphore.hpp>
 #include <nes/named_semaphore.hpp>
-#include <nes/int128.hpp>
-#include <nes/hash.hpp>
-
+#include <nes/hash.hpp>*/
+#include <nes/thread_pool.hpp>
+/*
 #if defined(NES_WIN32_SHARED_LIBRARY)
     #define NES_EXAMPLE_EXPORT __declspec(dllexport)
 #elif defined(NES_POSIX_SHARED_LIBRARY) && defined(__GNUC__)
@@ -30,12 +30,13 @@
     constexpr const char* other_path{"not_enough_standards_other"};
 #endif
 
+extern "C" NES_EXAMPLE_EXPORT void foo(int i);
 extern "C" NES_EXAMPLE_EXPORT void foo(int i)
 {
     std::cout << "Hello " << i << "!" << std::endl;
 }
 
-void shared_library_example()
+static void shared_library_example()
 {
     nes::shared_library lib{nes::load_current};
 
@@ -51,7 +52,7 @@ enum class data_type : std::uint32_t
     string
 };
 
-void a_thread(nes::basic_pipe_istream<char>& is) noexcept
+static void a_thread(nes::basic_pipe_istream<char>& is) noexcept
 {
     while(is)
     {
@@ -84,7 +85,7 @@ void a_thread(nes::basic_pipe_istream<char>& is) noexcept
     }
 }
 
-void pipe_example()
+static void pipe_example()
 {
     auto&&[is, os] = nes::make_anonymous_pipe();
 
@@ -125,7 +126,7 @@ void pipe_example()
         thread.join();
 }
 
-void another_thread(const std::array<std::uint64_t, 8>& data, nes::semaphore& semaphore)
+static void another_thread(const std::array<std::uint64_t, 8>& data, nes::semaphore& semaphore)
 {
     const auto tp1{std::chrono::high_resolution_clock::now()};
     for(std::size_t i{}; i < 8; ++i)
@@ -137,7 +138,7 @@ void another_thread(const std::array<std::uint64_t, 8>& data, nes::semaphore& se
     }
 }
 
-void semaphore_example()
+static void semaphore_example()
 {
     std::array<std::uint64_t, 8> data{0, 1};
     nes::semaphore semaphore{2};
@@ -154,7 +155,7 @@ void semaphore_example()
         thread.join();
 }
 
-void named_pipe_example()
+static void named_pipe_example()
 {
     nes::process other{other_path, std::vector<std::string>{"named pipe example"}, nes::process_options::grab_stdout};
 
@@ -200,7 +201,7 @@ void named_pipe_example()
     std::cout << "Other process ended with code: " << other.return_code() << std::endl;
 }
 
-void process_example()
+static void process_example()
 {
     std::cout << "Current process has id " << nes::this_process::get_id() << " and its current directory is \"" << nes::this_process::working_directory() << "\"" << std::endl;
 
@@ -213,7 +214,7 @@ void process_example()
     std::cout << "Other process ended with code: " << other.return_code() << std::endl;
 }
 
-void process_kill_example()
+static void process_kill_example()
 {
     nes::process other{other_path, std::vector<std::string>{"process kill example"}, nes::process_options::grab_stdout};
     std::this_thread::sleep_for(std::chrono::seconds{3});
@@ -224,7 +225,7 @@ void process_kill_example()
     std::cout << "Other process ended with code: " << other.return_code() << std::endl;
 }
 
-void shared_memory_example()
+static void shared_memory_example()
 {
     nes::shared_memory memory{"nes_example_shared_memory", sizeof(std::uint64_t)};
     auto value{memory.map<std::uint64_t>(0)};
@@ -240,7 +241,7 @@ void shared_memory_example()
     std::cout << "The value in shared memory is: " << *value << std::endl;
 }
 
-void named_mutex_example()
+static void named_mutex_example()
 {
     nes::named_mutex mutex{"nes_example_named_mutex"};
     std::unique_lock lock{mutex};
@@ -256,7 +257,7 @@ void named_mutex_example()
         other.join();
 }
 
-void timed_named_mutex_example()
+static void timed_named_mutex_example()
 {
     nes::timed_named_mutex mutex{"nes_example_timed_named_mutex"};
     std::unique_lock lock{mutex};
@@ -272,7 +273,7 @@ void timed_named_mutex_example()
         other.join();
 }
 
-void named_semaphore_example()
+static void named_semaphore_example()
 {
     nes::named_semaphore semaphore{"nes_example_named_semaphore"};
 
@@ -290,11 +291,76 @@ void named_semaphore_example()
         other.join();
 }
 
-void hash_example()
+static void hash_example()
 {
     nes::hash<std::variant<std::string_view, double>> hash{};
 
     std::cout << nes::from_hash_value<std::uint64_t>(hash("Hello world!")) << std::endl;
+}
+*/
+/*
+using hrc = std::chrono::high_resolution_clock;
+
+static void fake_thread_pool_test()
+{
+    const auto begin = hrc::now();
+
+    volatile std::uint64_t accumulator{};
+
+    for(std::uint64_t i{}; i < 100; ++i)
+    {
+        for(std::size_t j{}; j < 10000000; ++j)
+        {
+            accumulator += i;
+        }
+    }
+
+    std::cout << "Mono thread output: " << accumulator << "; time: " << std::chrono::duration_cast<std::chrono::microseconds>(hrc::now() - begin).count() << "us" << std::endl;
+}
+
+static void thread_pool_test()
+{
+    nes::thread_pool pool{};
+    pool.reserve(10);
+    std::vector<std::future<std::uint64_t>> futures{};
+    futures.reserve(10);
+
+    for(std::uint64_t i{}; i < 100; ++i)
+    {
+        futures.emplace_back(pool.push([i]()
+        {
+            return i;
+        }));
+    }
+
+    std::uint64_t accumulator{};
+    for(auto&& future : futures)
+    {
+        accumulator += future.get();
+    }
+
+    std::cout << "x" << std::flush;
+}*/
+
+static void thread_pool_chain_test()
+{
+    nes::thread_pool pool{};
+
+    auto future = pool.chain([]()
+    {
+        std::cout << "Hello ";
+    }).then([]()
+    {
+        std::cout << "World";
+    }).then([]()
+    {
+        std::cout << "!";
+    }).then([]()
+    {
+        std::cout << std::endl;
+    }).push();
+
+    future.get();
 }
 
 int main()
@@ -310,8 +376,12 @@ int main()
         shared_memory_example();
         named_mutex_example();
         timed_named_mutex_example();
-        named_semaphore_example();*/
-        hash_example();
+        named_semaphore_example();
+        hash_example();*/
+        //fake_thread_pool_test();
+        //thread_pool_test();
+        thread_pool_chain_test();
+
     }
     catch(const std::exception& e)
     {
