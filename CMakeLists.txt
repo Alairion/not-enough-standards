@@ -12,7 +12,8 @@ set(NES_HEADERS "${NES_INCLUDE_DIR}/nes/shared_library.hpp"
                 "${NES_INCLUDE_DIR}/nes/named_semaphore.hpp"
                 "${NES_INCLUDE_DIR}/nes/pipe.hpp"
                 "${NES_INCLUDE_DIR}/nes/process.hpp"
-                "${NES_INCLUDE_DIR}/nes/hash.hpp")
+                "${NES_INCLUDE_DIR}/nes/hash.hpp"
+                "${NES_INCLUDE_DIR}/nes/thread_pool.hpp")
 
 add_library(${PROJECT_NAME} INTERFACE)
 target_include_directories(${PROJECT_NAME} INTERFACE NES_INCLUDE_DIR)

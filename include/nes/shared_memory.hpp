@@ -60,7 +60,7 @@
 namespace nes
 {
 
-inline constexpr const char shared_memory_root[] = u8"Local\\";
+inline constexpr const char shared_memory_root[] = "Local\\";
 
 enum class shared_memory_options : std::uint32_t
 {
@@ -310,7 +310,7 @@ private:
 namespace nes
 {
 
-inline constexpr const char shared_memory_root[] = u8"/";
+inline constexpr const char shared_memory_root[] = "/";
 
 enum class shared_memory_options : std::uint32_t
 {
