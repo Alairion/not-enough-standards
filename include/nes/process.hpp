@@ -558,6 +558,7 @@ inline std::string working_directory()
     std::wstring native_path{};
     native_path.resize(static_cast<std::size_t>(size));
     GetCurrentDirectoryW(size, std::data(native_path));
+    native_path.pop_back(); //Because GetCurrentDirectoryW adds a null terminator
 
     std::transform(std::begin(native_path), std::end(native_path), std::begin(native_path), [](wchar_t c){return c == L'\\' ? L'/' : c;});
 
