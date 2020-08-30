@@ -563,7 +563,7 @@ inline std::string working_directory()
     std::transform(std::begin(native_path), std::end(native_path), std::begin(native_path), [](wchar_t c){return c == L'\\' ? L'/' : c;});
 
     std::string path{};
-    path.resize(static_cast<std::size_t>(WideCharToMultiByte(CP_UTF8, 0, std::data(native_path), -1, nullptr, 0, nullptr, nullptr)));
+    path.resize(static_cast<std::size_t>(WideCharToMultiByte(CP_UTF8, 0, std::data(native_path), static_cast<int>(std::size(native_path)), nullptr, 0, nullptr, nullptr)));
 
     if(!WideCharToMultiByte(CP_UTF8, 0, std::data(native_path), static_cast<int>(std::size(native_path)), std::data(path), static_cast<int>(std::size(path)), nullptr, nullptr))
         throw std::runtime_error{"Failed to convert the path to UTF-8."};
