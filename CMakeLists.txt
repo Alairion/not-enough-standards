@@ -13,7 +13,8 @@ set(NES_HEADERS ${PROJECT_SOURCE_DIR}/include/nes/shared_library.hpp
                 ${PROJECT_SOURCE_DIR}/include/nes/process.hpp
                 ${PROJECT_SOURCE_DIR}/include/nes/hash.hpp
                 ${PROJECT_SOURCE_DIR}/include/nes/thread_pool.hpp
-                ${PROJECT_SOURCE_DIR}/include/nes/math.hpp)
+                #${PROJECT_SOURCE_DIR}/include/nes/math.hpp
+                )
 
 add_library(${PROJECT_NAME} INTERFACE)
 
