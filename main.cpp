@@ -5,7 +5,7 @@
 #include <iterator>
 #include <iomanip>
 #include <array>
-/*
+
 #include <nes/pipe.hpp>
 #include <nes/shared_library.hpp>
 #include <nes/process.hpp>
@@ -13,9 +13,9 @@
 #include <nes/named_mutex.hpp>
 #include <nes/semaphore.hpp>
 #include <nes/named_semaphore.hpp>
-#include <nes/hash.hpp>*/
+#include <nes/hash.hpp>
 #include <nes/thread_pool.hpp>
-/*
+
 #if defined(NES_WIN32_SHARED_LIBRARY)
     #define NES_EXAMPLE_EXPORT __declspec(dllexport)
 #elif defined(NES_POSIX_SHARED_LIBRARY) && defined(__GNUC__)
@@ -297,7 +297,7 @@ static void hash_example()
 
     std::cout << nes::from_hash_value<std::uint64_t>(hash("Hello world!")) << std::endl;
 }
-*/
+
 /*
 using hrc = std::chrono::high_resolution_clock;
 
@@ -317,7 +317,7 @@ static void fake_thread_pool_test()
 
     std::cout << "Mono thread output: " << accumulator << "; time: " << std::chrono::duration_cast<std::chrono::microseconds>(hrc::now() - begin).count() << "us" << std::endl;
 }
-
+*//*
 static void thread_pool_test()
 {
     nes::thread_pool pool{};
@@ -329,6 +329,7 @@ static void thread_pool_test()
     {
         futures.emplace_back(pool.push([i]()
         {
+            std::this_thread::sleep_for(std::chrono::milliseconds{10});
             return i;
         }));
     }
@@ -340,33 +341,107 @@ static void thread_pool_test()
     }
 
     std::cout << "x" << std::flush;
-}*/
+}
 
 static void thread_pool_chain_test()
 {
+    using clock = std::chrono::high_resolution_clock;
+
+    struct task_data
+    {
+        clock::time_point begin{};
+        clock::time_point end{};
+        std::thread::id thread{};
+    };
+
+    struct task_context
+    {
+        std::array<task_data, 5> data{};
+        std::future<void> future{};
+    };
+
     nes::thread_pool pool{};
 
-    auto future = pool.chain([]()
+    std::vector<task_context> contexts{};
+    contexts.resize(10);
+
+    const auto begin{clock::now()};
+
+    for(std::size_t i{}; i < std::size(contexts); ++i)
     {
-        std::cout << "Hello ";
-    }).then([]()
+        contexts[i].future = pool.chain([&context = contexts[i]]
+        {
+            context.data[0].begin = clock::now();
+            context.data[0].thread = std::this_thread::get_id();
+            std::this_thread::sleep_for(std::chrono::milliseconds{500});
+            context.data[0].end = clock::now();
+        })
+        .then([&context = contexts[i]]
+        {
+            context.data[1].begin = clock::now();
+            context.data[1].thread = std::this_thread::get_id();
+            std::this_thread::sleep_for(std::chrono::milliseconds{100});
+            context.data[1].end = clock::now();
+        })
+        .with([&context = contexts[i]]
+        {
+            context.data[2].begin = clock::now();
+            context.data[2].thread = std::this_thread::get_id();
+            std::this_thread::sleep_for(std::chrono::milliseconds{200});
+            context.data[2].end = clock::now();
+        })
+        .with([&context = contexts[i]]
+        {
+            context.data[3].begin = clock::now();
+            context.data[3].thread = std::this_thread::get_id();
+            std::this_thread::sleep_for(std::chrono::milliseconds{300});
+            context.data[3].end = clock::now();
+        })
+        .then([&context = contexts[i]]
+        {
+            context.data[4].begin = clock::now();
+            context.data[4].thread = std::this_thread::get_id();
+            std::this_thread::sleep_for(std::chrono::milliseconds{500});
+            context.data[4].end = clock::now();
+        })
+        .push();
+    }
+
+    std::cout << std::setprecision(2);
+
+    const auto print_time = [begin](clock::time_point time)
     {
-        std::cout << "World";
-    }).then([]()
+        std::cout << std::fixed << std::chrono::duration<double>(time - begin).count();
+    };
+
+    const auto print_task = [print_time](std::size_t i, const task_data& data)
     {
-        std::cout << "!";
-    }).then([]()
+        print_time(data.begin);
+        std::cout << " -> T" << i << " (" << data.thread << ") -> ";
+        print_time(data.end);
+        std::cout << " | ";
+    };
+
+    for(std::size_t i{}; i < std::size(contexts); ++i)
     {
+        auto& context{contexts[i]};
+        context.future.wait();
+
+        std::cout << "Task " << i << " | ";
+
+        for(std::size_t i{}; i < std::size(context.data); ++i)
+        {
+            print_task(i, context.data[i]);
+        }
+
         std::cout << std::endl;
-    }).push();
-
-    future.get();
+    }
 }
-
+*/
 int main()
 {
     try
-    {/*
+    {
         shared_library_example();
         pipe_example();
         semaphore_example();
@@ -377,11 +452,11 @@ int main()
         named_mutex_example();
         timed_named_mutex_example();
         named_semaphore_example();
-        hash_example();*/
+        hash_example();
+
         //fake_thread_pool_test();
         //thread_pool_test();
-        thread_pool_chain_test();
-
+        //thread_pool_chain_test();
     }
     catch(const std::exception& e)
     {

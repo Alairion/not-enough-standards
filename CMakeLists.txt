@@ -4,19 +4,24 @@ project(not_enough_standards)
 
 option(NES_BUILD_EXAMPLES ON)
 
-set(NES_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
-set(NES_HEADERS "${NES_INCLUDE_DIR}/nes/shared_library.hpp"
-                "${NES_INCLUDE_DIR}/nes/shared_memory.hpp"
-                "${NES_INCLUDE_DIR}/nes/named_mutex.hpp"
-                "${NES_INCLUDE_DIR}/nes/semaphore.hpp"
-                "${NES_INCLUDE_DIR}/nes/named_semaphore.hpp"
-                "${NES_INCLUDE_DIR}/nes/pipe.hpp"
-                "${NES_INCLUDE_DIR}/nes/process.hpp"
-                "${NES_INCLUDE_DIR}/nes/hash.hpp"
-                "${NES_INCLUDE_DIR}/nes/thread_pool.hpp")
+set(NES_HEADERS ${PROJECT_SOURCE_DIR}/include/nes/shared_library.hpp
+                ${PROJECT_SOURCE_DIR}/include/nes/shared_memory.hpp
+                ${PROJECT_SOURCE_DIR}/include/nes/named_mutex.hpp
+                ${PROJECT_SOURCE_DIR}/include/nes/semaphore.hpp
+                ${PROJECT_SOURCE_DIR}/include/nes/named_semaphore.hpp
+                ${PROJECT_SOURCE_DIR}/include/nes/pipe.hpp
+                ${PROJECT_SOURCE_DIR}/include/nes/process.hpp
+                ${PROJECT_SOURCE_DIR}/include/nes/hash.hpp
+                ${PROJECT_SOURCE_DIR}/include/nes/thread_pool.hpp
+                ${PROJECT_SOURCE_DIR}/include/nes/math.hpp)
 
 add_library(${PROJECT_NAME} INTERFACE)
-target_include_directories(${PROJECT_NAME} INTERFACE NES_INCLUDE_DIR)
+
+target_include_directories(${PROJECT_NAME} INTERFACE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
 target_sources(${PROJECT_NAME} INTERFACE ${NES_HEADERS})
 
 if(UNIX)
