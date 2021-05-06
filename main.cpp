@@ -5,6 +5,7 @@
 #include <iterator>
 #include <iomanip>
 #include <array>
+#include <random>
 
 #include <nes/pipe.hpp>
 #include <nes/shared_library.hpp>
@@ -15,7 +16,7 @@
 #include <nes/named_semaphore.hpp>
 #include <nes/hash.hpp>
 #include <nes/thread_pool.hpp>
-
+/*
 #if defined(NES_WIN32_SHARED_LIBRARY)
     #define NES_EXAMPLE_EXPORT __declspec(dllexport)
 #elif defined(NES_POSIX_SHARED_LIBRARY) && defined(__GNUC__)
@@ -298,150 +299,101 @@ static void hash_example()
     std::cout << nes::from_hash_value<std::uint64_t>(hash("Hello world!")) << std::endl;
 }
 
-/*
+
 using hrc = std::chrono::high_resolution_clock;
+*/
 
-static void fake_thread_pool_test()
+static void thread_pool_example()
 {
-    const auto begin = hrc::now();
+    static constexpr std::size_t buffer_size{32};
 
-    volatile std::uint64_t accumulator{};
+    //Some buffers
+    std::array<std::uint32_t, buffer_size> input{};
+    std::array<std::uint32_t, buffer_size> temp{};
+    std::array<std::uint32_t, buffer_size> output{};
 
-    for(std::uint64_t i{}; i < 100; ++i)
+    const auto print_buffers = [&input, &temp, &output]()
     {
-        for(std::size_t j{}; j < 10000000; ++j)
+        const auto print_buffer = [](const std::array<std::uint32_t, buffer_size>& buffer)
         {
-            accumulator += i;
-        }
-    }
+            for(auto value : buffer)
+            {
+                std::cout << value << ",";
+            }
+        };
 
-    std::cout << "Mono thread output: " << accumulator << "; time: " << std::chrono::duration_cast<std::chrono::microseconds>(hrc::now() - begin).count() << "us" << std::endl;
-}
-*//*
-static void thread_pool_test()
-{
-    nes::thread_pool pool{};
-    pool.reserve(10);
-    std::vector<std::future<std::uint64_t>> futures{};
-    futures.reserve(10);
-
-    for(std::uint64_t i{}; i < 100; ++i)
-    {
-        futures.emplace_back(pool.push([i]()
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds{10});
-            return i;
-        }));
-    }
-
-    std::uint64_t accumulator{};
-    for(auto&& future : futures)
-    {
-        accumulator += future.get();
-    }
-
-    std::cout << "x" << std::flush;
-}
-
-static void thread_pool_chain_test()
-{
-    using clock = std::chrono::high_resolution_clock;
-
-    struct task_data
-    {
-        clock::time_point begin{};
-        clock::time_point end{};
-        std::thread::id thread{};
-    };
-
-    struct task_context
-    {
-        std::array<task_data, 5> data{};
-        std::future<void> future{};
-    };
-
-    nes::thread_pool pool{};
-
-    std::vector<task_context> contexts{};
-    contexts.resize(10);
-
-    const auto begin{clock::now()};
-
-    for(std::size_t i{}; i < std::size(contexts); ++i)
-    {
-        contexts[i].future = pool.chain([&context = contexts[i]]
-        {
-            context.data[0].begin = clock::now();
-            context.data[0].thread = std::this_thread::get_id();
-            std::this_thread::sleep_for(std::chrono::milliseconds{500});
-            context.data[0].end = clock::now();
-        })
-        .then([&context = contexts[i]]
-        {
-            context.data[1].begin = clock::now();
-            context.data[1].thread = std::this_thread::get_id();
-            std::this_thread::sleep_for(std::chrono::milliseconds{100});
-            context.data[1].end = clock::now();
-        })
-        .with([&context = contexts[i]]
-        {
-            context.data[2].begin = clock::now();
-            context.data[2].thread = std::this_thread::get_id();
-            std::this_thread::sleep_for(std::chrono::milliseconds{200});
-            context.data[2].end = clock::now();
-        })
-        .with([&context = contexts[i]]
-        {
-            context.data[3].begin = clock::now();
-            context.data[3].thread = std::this_thread::get_id();
-            std::this_thread::sleep_for(std::chrono::milliseconds{300});
-            context.data[3].end = clock::now();
-        })
-        .then([&context = contexts[i]]
-        {
-            context.data[4].begin = clock::now();
-            context.data[4].thread = std::this_thread::get_id();
-            std::this_thread::sleep_for(std::chrono::milliseconds{500});
-            context.data[4].end = clock::now();
-        })
-        .push();
-    }
-
-    std::cout << std::setprecision(2);
-
-    const auto print_time = [begin](clock::time_point time)
-    {
-        std::cout << std::fixed << std::chrono::duration<double>(time - begin).count();
-    };
-
-    const auto print_task = [print_time](std::size_t i, const task_data& data)
-    {
-        print_time(data.begin);
-        std::cout << " -> T" << i << " (" << data.thread << ") -> ";
-        print_time(data.end);
-        std::cout << " | ";
-    };
-
-    for(std::size_t i{}; i < std::size(contexts); ++i)
-    {
-        auto& context{contexts[i]};
-        context.future.wait();
-
-        std::cout << "Task " << i << " | ";
-
-        for(std::size_t i{}; i < std::size(context.data); ++i)
-        {
-            print_task(i, context.data[i]);
-        }
+        std::cout << "input:  ";
+        print_buffer(input);
+        std::cout << "\ntemp:   ";
+        print_buffer(temp);
+        std::cout << "\noutput: ";
+        print_buffer(output);
 
         std::cout << std::endl;
+    };
+
+    //Fill the buffer with random values
+    std::mt19937 rng{std::random_device{}()};
+    std::uniform_int_distribution<std::uint32_t> dist{1, 9};
+
+    for(auto& input_value : input)
+    {
+        input_value = dist(rng);
     }
+
+    nes::task_builder builder{};
+
+    nes::task_fence begin_fence{builder.fence()};
+
+    builder.dispatch(buffer_size, 1, 1, [&input, &temp](std::uint32_t x, std::uint32_t y [[maybe_unused]], std::uint32_t z [[maybe_unused]])
+    {
+        temp[x] = input[x] * 2u;
+    });
+
+    nes::task_checkpoint first_barrier{builder.barrier()};
+
+    nes::task_fence end_fence{builder.fence()};
+
+    builder.dispatch(buffer_size, 1, 1, [&input, &temp, &output](std::uint32_t x, std::uint32_t y [[maybe_unused]], std::uint32_t z [[maybe_unused]])
+    {
+        for(auto value : temp)
+        {
+            output[x] += (value + input[x]);
+        }
+    });
+
+    //Create a thread pull to run our task list.
+    nes::thread_pool thread_pool{};
+
+    std::future<nes::task_list> task_future{thread_pool.push(builder.build())};
+
+    std::cout << "The first fence must be signaled to launch the work..." << std::endl;
+    print_buffers();
+
+    begin_fence.signal();
+
+    std::cout << "Work started..." << std::endl;
+
+    first_barrier.wait();
+
+    std::cout << "First dispatch done:" << std::endl;
+    print_buffers();
+    std::cout << "Launching second dispatch..." << std::endl;
+
+    end_fence.signal();
+
+    std::cout << "Second dispatch started..." << std::endl;
+
+    task_future.wait();
+
+    std::cout << "Second dispatch done:" << std::endl;
+    print_buffers();
 }
-*/
+
 int main()
 {
     try
-    {
+    {/*
         shared_library_example();
         pipe_example();
         semaphore_example();
@@ -452,11 +404,9 @@ int main()
         named_mutex_example();
         timed_named_mutex_example();
         named_semaphore_example();
-        hash_example();
+        hash_example();*/
 
-        //fake_thread_pool_test();
-        //thread_pool_test();
-        //thread_pool_chain_test();
+        thread_pool_example();
     }
     catch(const std::exception& e)
     {

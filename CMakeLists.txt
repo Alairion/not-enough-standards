@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 
 project(not_enough_standards)
 
-option(NES_BUILD_EXAMPLES ON)
+option(NES_BUILD_EXAMPLES OFF)
 
 set(NES_HEADERS ${PROJECT_SOURCE_DIR}/include/nes/shared_library.hpp
                 ${PROJECT_SOURCE_DIR}/include/nes/shared_memory.hpp
