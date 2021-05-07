@@ -341,18 +341,17 @@ static void thread_pool_example()
         input_value = dist(rng);
     }
 
+    //The task builder
     nes::task_builder builder{};
-
-    nes::task_fence begin_fence{builder.fence()};
 
     builder.dispatch(buffer_size, 1, 1, [&input, &temp](std::uint32_t x, std::uint32_t y [[maybe_unused]], std::uint32_t z [[maybe_unused]])
     {
         temp[x] = input[x] * 2u;
     });
 
-    nes::task_checkpoint first_barrier{builder.barrier()};
+    nes::task_checkpoint checkpoint{builder.checkpoint()};
 
-    nes::task_fence end_fence{builder.fence()};
+    nes::task_fence fence{builder.fence()};
 
     builder.dispatch(buffer_size, 1, 1, [&input, &temp, &output](std::uint32_t x, std::uint32_t y [[maybe_unused]], std::uint32_t z [[maybe_unused]])
     {
@@ -362,29 +361,28 @@ static void thread_pool_example()
         }
     });
 
-    //Create a thread pull to run our task list.
+    //Create a thread pool to run our task list.
     nes::thread_pool thread_pool{};
 
-    std::future<nes::task_list> task_future{thread_pool.push(builder.build())};
-
-    std::cout << "The first fence must be signaled to launch the work..." << std::endl;
+    std::cout << "Initial state:" << std::endl;
     print_buffers();
+    std::cout << "Launching first the work..." << std::endl;
 
-    begin_fence.signal();
+    std::future<nes::task_list> future{thread_pool.push(builder.build())};
 
     std::cout << "Work started..." << std::endl;
 
-    first_barrier.wait();
+    checkpoint.wait();
 
     std::cout << "First dispatch done:" << std::endl;
     print_buffers();
     std::cout << "Launching second dispatch..." << std::endl;
 
-    end_fence.signal();
+    fence.signal();
 
     std::cout << "Second dispatch started..." << std::endl;
 
-    task_future.wait();
+    future.wait();
 
     std::cout << "Second dispatch done:" << std::endl;
     print_buffers();

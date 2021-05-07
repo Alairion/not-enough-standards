@@ -36,18 +36,9 @@
 #include <condition_variable>
 #include <mutex>
 #include <functional>
-#include <iostream>
 #include <variant>
 #include <cassert>
-
-/*
-C++17 workaround:
-
-auto task = [promise = std::move(promise), func = std::forward<Func>(func), args = std::make_tuple(std::forward<Args>(args)...)]() mutable
-{
-    promise.set_value(std::apply(std::forward<Func>(func), std::move(args)));
-};
-*/
+#include <span>
 
 namespace nes
 {
@@ -187,7 +178,7 @@ private:
     std::unique_ptr<checkpoint_holder_base> m_checkpoint{};
 };
 
-using checkpoint_iterator = std::vector<checkpoint_holder_base*>::iterator;
+using checkpoint_range = std::span<checkpoint_holder_base*>;
 
 class task_holder_base
 {
@@ -202,24 +193,22 @@ public:
     virtual void reset() = 0;
     virtual void execute() = 0;
 
-    void set_checkpoint_range(checkpoint_iterator checkpoint_begin, checkpoint_iterator checkpoint_end)
+    void set_checkpoint_range(checkpoint_range checkpoints)
     {
-        m_checkpoint_begin = checkpoint_begin;
-        m_checkpoint_end = checkpoint_end;
+        m_checkpoints = checkpoints;
     }
 
 protected:
     void trigger_checkpoints()
     {
-        for(auto it{m_checkpoint_begin}; it != m_checkpoint_end; ++it)
+        for(auto& checkpoint : m_checkpoints)
         {
-            (*it)->count_down();
+            checkpoint->count_down();
         }
     }
 
 private:
-    checkpoint_iterator m_checkpoint_begin{};
-    checkpoint_iterator m_checkpoint_end{};
+    checkpoint_range m_checkpoints{};
 };
 
 template<typename Func>
@@ -319,9 +308,9 @@ public:
     task(task&&) = default;
     task& operator=(task&&) = default;
 
-    void set_checkpoint_range(checkpoint_iterator checkpoint_begin, checkpoint_iterator checkpoint_end)
+    void set_checkpoint_range(checkpoint_range checkpoints)
     {
-        m_holder->set_checkpoint_range(checkpoint_begin, checkpoint_end);
+        m_holder->set_checkpoint_range(checkpoints);
     }
 
     void execute()
@@ -792,7 +781,7 @@ private:
             {
                 auto task{std::get<impl::task>(std::move(*begin))};
 
-                task.set_checkpoint_range(checkpoints_begin, checkpoints_end);
+                task.set_checkpoint_range(std::span{checkpoints_begin, checkpoints_end});
                 output.emplace_back(std::in_place_type<impl::task>, std::move(task));
 
                 ++checkpoint_counter;
@@ -1005,14 +994,14 @@ private:
         std::size_t notify_count{};
         bool need_free{};
 
-        for(auto& data : m_task_lists)
+        for(auto& list : m_task_lists)
         {
-            const auto [end, count] = data.list.next(std::back_inserter(m_tasks));
+            const auto [end, count] = list.list.next(std::back_inserter(m_tasks));
 
             if(end && count == 0)
             {
-                data.promise.set_value(std::move(data.list));
-                data.need_free = true;
+                list.promise.set_value(std::move(list.list));
+                list.need_free = true;
 
                 need_free = true;
             }
