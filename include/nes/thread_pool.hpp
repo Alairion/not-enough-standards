@@ -445,9 +445,9 @@ public:
         return m_state->get();
     }
 
-    bool valid() const
+    bool valid() const noexcept
     {
-        return m_state && m_state->valid();
+        return m_state->valid();
     }
 
     void wait() const
@@ -593,7 +593,7 @@ public:
     explicit task_builder(std::uint32_t thread_count = std::thread::hardware_concurrency())
     :m_thread_count{thread_count != 0 ? thread_count : 8}
     {
-
+        m_tasks.reserve(32);
     }
 
     ~task_builder() = default;
@@ -702,7 +702,7 @@ public:
         return output;
     }
 
-    task_fence fence()
+    [[nodiscard]] task_fence fence()
     {
         task_fence output{};
         output.m_holder = std::get<impl::fence>(m_tasks.emplace_back(std::in_place_type<impl::fence>)).holder();

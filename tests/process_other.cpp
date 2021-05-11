@@ -18,79 +18,73 @@ enum class data_type : std::uint32_t
 {
     while(true)
     {
-        std::cout << "Ha ha! I'm running indefinitely!" << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds{500});
+        std::this_thread::sleep_for(std::chrono::milliseconds{10});
     }
 }
 
-static void named_pipe_example()
+static void named_pipe()
 {
-    nes::pipe_istream is{"nes_example_pipe"};
+    nes::pipe_istream is{"nes_test_pipe"};
     if(!is)
     {
-        std::cerr << "Failed to open pipe." << std::endl;
-        return;
+        throw std::runtime_error{"Failed to open pipe."};
     }
 
-    while(is)
-    {
-        data_type type{};
-        is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
-        if(type == data_type::uint32)
-        {
-            std::uint32_t value{};
-            is.read(reinterpret_cast<char*>(&value), sizeof(std::uint32_t));
+    data_type     type{};
+    std::uint32_t uint_value{};
+    double        float_value{};
+    std::string   str_value{};
+    std::uint64_t str_size{};
 
-            std::cout << "Received an unsigned integer: " << value << std::endl;
-        }
-        else if(type == data_type::float64)
-        {
-            double value{};
-            is.read(reinterpret_cast<char*>(&value), sizeof(double));
+    is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
+    assert(type == data_type::uint32);
 
-            std::cout << "Received a double: " << value << std::endl;
-        }
-        else if(type == data_type::string)
-        {
-            std::uint64_t size{};
-            is.read(reinterpret_cast<char*>(&size), sizeof(std::uint64_t));
-            std::string str{};
-            str.resize(size);
-            is.read(reinterpret_cast<char*>(std::data(str)), static_cast<std::streamsize>(size));
+    is.read(reinterpret_cast<char*>(&uint_value), sizeof(std::uint32_t));
+    assert(uint_value == 42);
 
-            std::cout << "Received a string: " << str << std::endl;
-        }
-    }
+    is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
+    assert(type == data_type::float64);
+
+    is.read(reinterpret_cast<char*>(&float_value), sizeof(double));
+    assert(float_value > 3.13 && float_value < 3.15);
+
+    is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
+    assert(type == data_type::string);
+
+    is.read(reinterpret_cast<char*>(&str_size), sizeof(std::uint64_t));
+    str_value.resize(str_size);
+    is.read(std::data(str_value), static_cast<std::streamsize>(str_size));
+
+    assert(str_value == "Hello world!");
 }
 
-static void shared_memory_example()
+static void shared_memory()
 {
     {
-        nes::shared_memory memory{"nes_example_shared_memory", nes::shared_memory_options::constant};
-        std::cout << "Value in shared memory is: " << *memory.map<const std::uint64_t>(0) << std::endl;
+        nes::shared_memory memory{"nes_test_shared_memory", nes::shared_memory_options::constant};
+        assert(*memory.map<const std::uint64_t>(0) == 42);
     }
 
     {
-        std::cout << "Modifying value in shared memory to 2^24..." << std::endl;
-        nes::shared_memory new_memory{"nes_example_shared_memory"};
+        nes::shared_memory new_memory{"nes_test_shared_memory"};
         *new_memory.map<std::uint64_t>(0) = 16777216;
     }
 }
 
-static void named_mutex_example()
+static void named_mutex()
 {
     auto tp1 = std::chrono::high_resolution_clock::now();
 
-    nes::named_mutex mutex{"nes_example_named_mutex"};
+    nes::named_mutex mutex{"nes_test_named_mutex"};
     std::lock_guard lock{mutex};
 
     auto tp2 = std::chrono::high_resolution_clock::now();
     std::cout << "Gained ownership of the mutex after " << std::chrono::duration_cast<std::chrono::duration<double>>(tp2 - tp1).count() << "s." << std::endl;
 }
 
-static void timed_named_mutex_example()
+static void timed_named_mutex()
 {
-    nes::timed_named_mutex mutex{"nes_example_timed_named_mutex"};
+    nes::timed_named_mutex mutex{"nes_test_timed_named_mutex"};
     std::unique_lock lock{mutex, std::defer_lock};
 
     std::uint32_t tries{};
@@ -100,9 +94,9 @@ static void timed_named_mutex_example()
     std::cout << "Gained ownership of the mutex after " << tries << " tries." << std::endl;
 }
 
-static void named_semaphore_example()
+static void named_semaphore()
 {
-    nes::named_semaphore semaphore{"nes_example_named_semaphore"};
+    nes::named_semaphore semaphore{"nes_test_named_semaphore"};
 
     const auto tp1{std::chrono::high_resolution_clock::now()};
     for(std::size_t i{}; i < 8; ++i)
@@ -135,23 +129,23 @@ int main(int argc, char** argv)
             }
             if(argv[i] == "named pipe"sv)
             {
-                named_pipe_example();
+                named_pipe();
             }
             if(argv[i] == "shared memory"sv)
             {
-                shared_memory_example();
+                shared_memory();
             }
             if(argv[i] == "named mutex"sv)
             {
-                named_mutex_example();
+                named_mutex();
             }
             if(argv[i] == "timed named mutex"sv)
             {
-                timed_named_mutex_example();
+                timed_named_mutex();
             }
             if(argv[i] == "named semaphore"sv)
             {
-                named_semaphore_example();
+                named_semaphore();
             }
         }
         catch(const std::exception& e)
