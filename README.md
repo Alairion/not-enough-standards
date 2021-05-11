@@ -11,12 +11,13 @@ Not Enough Standards works on any posix-compliant system and also on Windows.
 * Inter-process communication (pipes, shared memory)
 * Inter-process synchronization (named mutexes, named semaphores)
 * Synchronization primitives (semaphores)
+* Thread pools
 
 Check out the [Wiki](https://github.com/Alairion/not-enough-standards/wiki) for more informations.
 
 ## Installation
 
-Not Enough Standards requires a C++17 compiler.
+Not Enough Standards requires a C++17 compiler, and a C++20 compiler for thread pools.
 
 As any header only library, Not Enough Standards is designed to be directly included in your project, by copying the files you need in your project's directory.
 
