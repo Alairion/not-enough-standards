@@ -1,22 +1,23 @@
 # Not Enough Standards
 
-Not Enough Standards is a modern header-only C++17 library that provides platform-independent utilities. The goal of this library is to extend the standard library with recurent features, such as process management or shared library loading. To reach that goal the library is written in a very standard compliant way, from the coding-style to the naming convention.
+Not Enough Standards is a modern header-only C++17 and C++20 library that provides platform-independent utilities. The goal of this library is to extend the standard library with recurent features, such as process management, shared library loading or thread pools. To reach that goal the library is written in a very standard compliant way, from the coding-style to the naming convention.
 
 ## Features
 
 Not Enough Standards works on any posix-compliant system and also on Windows.
 
-* Shared library loading
-* Process management
-* Inter-process communication (pipes, shared memory)
-* Inter-process synchronization (named mutexes, named semaphores)
-* Synchronization primitives (semaphores)
+* [Shared library loading](https://github.com/Alairion/not-enough-standards/wiki/shared_library.hpp)
+* [Process management](https://github.com/Alairion/not-enough-standards/wiki/process.hpp)
+* Inter-process communication ([pipes](https://github.com/Alairion/not-enough-standards/wiki/pipe.hpp), [shared memory](https://github.com/Alairion/not-enough-standards/wiki/shared_memory.hpp))
+* Inter-process synchronization ([named mutexes](https://github.com/Alairion/not-enough-standards/wiki/named_mutex.hpp), [named semaphores](https://github.com/Alairion/not-enough-standards/wiki/names_semaphore.hpp))
+* Synchronization primitives ([semaphores](https://github.com/Alairion/not-enough-standards/wiki/semaphore.hpp))
+* [Thread pools](https://github.com/Alairion/not-enough-standards/wiki/thread_pool.hpp)
 
 Check out the [Wiki](https://github.com/Alairion/not-enough-standards/wiki) for more informations.
 
 ## Installation
 
-Not Enough Standards requires a C++17 compiler.
+Not Enough Standards requires a C++17 compiler, and a C++20 compiler for thread pools.
 
 As any header only library, Not Enough Standards is designed to be directly included in your project, by copying the files you need in your project's directory.
 
