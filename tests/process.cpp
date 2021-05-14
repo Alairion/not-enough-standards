@@ -122,7 +122,7 @@ static void semaphore_test()
     nes::semaphore semaphore{2};
     std::thread thread{another_thread, std::cref(data), std::ref(semaphore)};
 
-    for(std::size_t i{2}; i < 8; ++i)
+    for(std::uint32_t i{2}; i < 8; ++i)
     {
         data[i] = i;
 

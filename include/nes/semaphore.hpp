@@ -108,16 +108,7 @@ public:
 private:
     std::string get_error_message() const
     {
-        std::string out{};
-        out.resize(1024);
-
-        const DWORD error{GetLastError()};
-        const DWORD out_size{FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, std::data(out), static_cast<DWORD>(std::size(out)), nullptr)};
-        out.resize(std::max(out_size - 2, DWORD{}));
-
-        out += " (#" + std::to_string(error) + ")";
-
-        return out;
+        return "#" + std::to_string(GetLastError());
     }
 
 private:
@@ -188,16 +179,7 @@ public:
 private:
     std::string get_error_message() const
     {
-        std::string out{};
-        out.resize(1024);
-
-        const DWORD error{GetLastError()};
-        const DWORD out_size{FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, std::data(out), static_cast<DWORD>(std::size(out)), nullptr)};
-        out.resize(std::max(out_size - 2, DWORD{}));
-
-        out += " (#" + std::to_string(error) + ")";
-
-        return out;
+        return "#" + std::to_string(GetLastError());
     }
 
 private:

@@ -130,12 +130,14 @@ public:
 private:
     std::wstring to_wide(std::string path)
     {
+        assert(std::size(path) < 0x7FFFFFFFu && "Wrong path.");
+
         std::transform(std::begin(path), std::end(path), std::begin(path), [](char c){return c == '/' ? '\\' : c;});
 
         std::wstring out_path{};
-        out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
+        out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
 
-        if (!MultiByteToWideChar(CP_UTF8, 0, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+        if (!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
             throw std::runtime_error{"Failed to convert the path to wide."};
 
         return out_path;
@@ -143,16 +145,7 @@ private:
 
     std::string get_error_message() const
     {
-        std::string out{};
-        out.resize(1024);
-
-        const DWORD error{GetLastError()};
-        const DWORD out_size{FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, std::data(out), static_cast<DWORD>(std::size(out)), nullptr)};
-        out.resize(std::max(out_size - 2, DWORD{}));
-
-        out += " (#" + std::to_string(error) + ")";
-
-        return out;
+        return "#" + std::to_string(GetLastError());
     }
 
     native_handle_type m_handle{};
