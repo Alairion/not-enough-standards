@@ -41,7 +41,7 @@
 #elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
     #define NES_POSIX_PROCESS
     #include <unistd.h>
-    #include <wait.h>
+    #include <sys/wait.h>
     #include <string.h>
     #include <limits.h>
 #else
