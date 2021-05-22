@@ -15,7 +15,12 @@
 #include <nes/named_mutex.hpp>
 #include <nes/semaphore.hpp>
 #include <nes/named_semaphore.hpp>
+
+#if __cplusplus >= 202002L
+
 #include <nes/thread_pool.hpp>
+
+#endif
 
 #if defined(NES_WIN32_PROCESS)
     constexpr const char* other_path{"not_enough_standards_test_other.exe"};
@@ -264,6 +269,8 @@ static void named_semaphore_test()
         other.join();
 }
 
+#if __cplusplus >= 202002L
+
 static void thread_pool_test()
 {
     static constexpr std::size_t buffer_size{32};
@@ -349,6 +356,8 @@ static void thread_pool_test()
     print_buffers();
 }
 
+#endif
+
 int main()
 {
     try
@@ -363,7 +372,12 @@ int main()
         named_mutex_test();
         timed_named_mutex_test();
         named_semaphore_test();
+
+        #if __cplusplus >= 202002L
         thread_pool_test();
+        #else
+        std::cout << "Thread pool can not be tested (compiler does not support C++20)" << std::endl;
+        #endif
 
         std::cout << "Tests passed succesfully." << std::endl;
     }
