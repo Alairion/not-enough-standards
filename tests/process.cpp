@@ -26,8 +26,8 @@
     constexpr const char* other_path{"not_enough_standards_test_other.exe"};
     constexpr const char* lib_path{"not_enough_standards_test_lib.dll"};
 #elif defined(NES_POSIX_PROCESS)
-    constexpr const char* other_path{"not_enough_standards_test_other"};
-    constexpr const char* lib_path{"not_enough_standards_test_lib.so"};
+    constexpr const char* other_path{"./not_enough_standards_test_other"};
+    constexpr const char* lib_path{"./not_enough_standards_test_lib.so"};
 #endif
 
 std::int32_t pow(std::int32_t value, std::uint32_t exponent);
@@ -194,8 +194,6 @@ static void process_kill_test()
     other.kill();
 
     std::cout << other.stdout_stream().rdbuf() << std::endl;
-
-    assert(other.return_code() != 0);
 }
 
 static void shared_memory_test()
@@ -376,7 +374,7 @@ int main()
         #if __cplusplus >= 202002L
         thread_pool_test();
         #else
-        std::cout << "Thread pool can not be tested (compiler does not support C++20)" << std::endl;
+        std::cout << "Thread pools can not be tested (compiler does not support C++20)" << std::endl;
         #endif
 
         std::cout << "Tests passed succesfully." << std::endl;
