@@ -520,7 +520,7 @@ public:
 
     basic_pipe_streambuf(basic_pipe_streambuf&& other) noexcept
     :parent_type{std::move(other)}
-    ,m_buffer{ std::move(other.m_buffer)}
+    ,m_buffer{std::move(other.m_buffer)}
     ,m_handle{std::exchange(other.m_handle, 0)}
     ,m_mode{std::exchange(other.m_mode, std::ios_base::openmode{})}
     {
@@ -572,7 +572,7 @@ public:
             sync();
 
             m_mode = std::ios_base::openmode{};
-            ::close(std::exchange(other.m_handle, 0));
+            ::close(std::exchange(m_handle, 0));
             parent_type::setp(nullptr, nullptr);
             parent_type::setg(nullptr, nullptr, nullptr);
         }
