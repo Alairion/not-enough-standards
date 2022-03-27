@@ -23,7 +23,7 @@ As any header only library, Not Enough Standards is designed to be directly incl
 
 You may also use it as a CMake subproject using `add_subdirectory`, and use it as any other library:
 ```
-target_link_libraries(xxx not_enough_standards)
+target_link_libraries(xxx NotEnoughStandards)
 target_include_directories(xxx PRIVATE ${NES_INCLUDE_DIR})
 ```
 
