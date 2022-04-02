@@ -56,7 +56,7 @@ include(CMakePackageConfigHelpers)
 
 configure_package_config_file(
     "${PROJECT_SOURCE_DIR}/cmake/NotEnoughStandards.cmake.in"
-    "${PROJECT_BINARY_DIR}/NotEnoughStandards.cmake"
+    "${PROJECT_BINARY_DIR}/NotEnoughStandardsConfig.cmake"
     INSTALL_DESTINATION lib/cmake/NotEnoughStandards
 )
 
@@ -77,7 +77,7 @@ install(EXPORT NotEnoughStandardsTargets
 )
 
 install(FILES "${PROJECT_BINARY_DIR}/NotEnoughStandardsConfigVersion.cmake"
-              "${PROJECT_BINARY_DIR}/NotEnoughStandards.cmake"
+              "${PROJECT_BINARY_DIR}/NotEnoughStandardsConfig.cmake"
         DESTINATION "lib/cmake/NotEnoughStandards"
 )
 
