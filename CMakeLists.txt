@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(NotEnoughStandards VERSION 1.0.1)
+project(NotEnoughStandards VERSION 1.0.2)
 
 option(NES_BUILD_EXAMPLES "Build Not Enough Standards' examples" OFF)
 option(NES_BUILD_TESTS "Build Not Enough Standards' tests" OFF)
