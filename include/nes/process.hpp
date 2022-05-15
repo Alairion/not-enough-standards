@@ -60,6 +60,7 @@
 #include <memory>
 #include <functional>
 #include <cassert>
+#include <utility>
 
 #if defined(NES_WIN32_PROCESS)
 

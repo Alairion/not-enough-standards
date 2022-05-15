@@ -49,6 +49,7 @@
 #include <algorithm>
 #include <cassert>
 #include <stdexcept>
+#include <utility>
 
 #if defined(NES_WIN32_SHARED_LIBRARY)
 

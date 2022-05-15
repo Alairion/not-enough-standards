@@ -374,7 +374,7 @@ int main()
         #if __cplusplus >= 202002L
         thread_pool_test();
         #else
-        std::cout << "Thread pools can not be tested (compiler does not support C++20)" << std::endl;
+        std::cout << "Thread pools can not be tested (compiler does not support C++20): " << __cplusplus << std::endl;
         #endif
 
         std::cout << "Tests passed succesfully." << std::endl;

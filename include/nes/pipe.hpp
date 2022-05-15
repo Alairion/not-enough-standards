@@ -55,6 +55,7 @@
 #include <ostream>
 #include <memory>
 #include <cassert>
+#include <utility>
 
 #if defined(NES_WIN32_PIPE)
 

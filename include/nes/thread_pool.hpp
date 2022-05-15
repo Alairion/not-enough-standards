@@ -39,6 +39,7 @@
 #include <variant>
 #include <cassert>
 #include <span>
+#include <utility>
 
 namespace nes
 {
