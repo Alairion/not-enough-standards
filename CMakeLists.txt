@@ -13,15 +13,15 @@ target_include_directories(NotEnoughStandards INTERFACE
 )
 
 target_sources(NotEnoughStandards INTERFACE
-    $<BUILD_INTERFACE:"${PROJECT_SOURCE_DIR}/include/nes/shared_library.hpp">
-    $<BUILD_INTERFACE:"${PROJECT_SOURCE_DIR}/include/nes/shared_memory.hpp">
-    $<BUILD_INTERFACE:"${PROJECT_SOURCE_DIR}/include/nes/named_mutex.hpp">
-    $<BUILD_INTERFACE:"${PROJECT_SOURCE_DIR}/include/nes/semaphore.hpp">
-    $<BUILD_INTERFACE:"${PROJECT_SOURCE_DIR}/include/nes/named_semaphore.hpp">
-    $<BUILD_INTERFACE:"${PROJECT_SOURCE_DIR}/include/nes/pipe.hpp">
-    $<BUILD_INTERFACE:"${PROJECT_SOURCE_DIR}/include/nes/process.hpp">
-    $<BUILD_INTERFACE:"${PROJECT_SOURCE_DIR}/include/nes/hash.hpp">
-    $<BUILD_INTERFACE:"${PROJECT_SOURCE_DIR}/include/nes/thread_pool.hpp">
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/nes/shared_library.hpp>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/nes/shared_memory.hpp>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/nes/named_mutex.hpp>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/nes/semaphore.hpp>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/nes/named_semaphore.hpp>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/nes/pipe.hpp>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/nes/process.hpp>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/nes/hash.hpp>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/nes/thread_pool.hpp>
     )
 
 if(UNIX)
