@@ -25,7 +25,10 @@ target_sources(NotEnoughStandards INTERFACE
     )
 
 if(UNIX)
-    target_link_libraries(NotEnoughStandards INTERFACE pthread rt dl)
+    target_link_libraries(NotEnoughStandards INTERFACE dl)
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL ANDROID)
+        target_link_libraries(NotEnoughStandards INTERFACE pthread rt)
+    endif()
 endif()
 
 if(NES_BUILD_EXAMPLES)

@@ -21,10 +21,9 @@ Not Enough Standards requires a C++17 compiler, and a C++20 compiler for thread 
 
 As any header only library, Not Enough Standards is designed to be directly included in your project, by copying the files you need in your project's directory.
 
-You may also use it as a CMake subproject using `add_subdirectory`, and use it as any other library:
+You may also use it as a CMake subproject using `add_subdirectory`, or by find package, and use it as any other library:
 ```
-target_link_libraries(xxx NotEnoughStandards)
-target_include_directories(xxx PRIVATE ${NES_INCLUDE_DIR})
+target_link_libraries(xxx PRIVATE NotEnoughStandards::NotEnoughStandards)
 ```
 
 The files of the library are independent from each others, so if you only need one specific feature, you can use only the header that contains it.   
