@@ -92,7 +92,7 @@ public:
     checkpoint_holder(checkpoint_holder&&) = delete;
     checkpoint_holder& operator=(checkpoint_holder&&) = delete;
 
-    void set_reset_value(std::size_t value) noexcept
+    void set_reset_value(std::size_t value) noexcept override
     {
         m_reset_value = value;
     }
