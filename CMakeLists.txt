@@ -67,6 +67,10 @@ if(BUILD_TESTING)
 
     enable_testing()
     add_test(NAME NotEnoughStandardsTest COMMAND NotEnoughStandardsTest)
+    get_property(multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    if(multi_config)
+        set_tests_properties(NotEnoughStandardsTest PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>)
+    endif()
 endif()
 
 include(CMakePackageConfigHelpers)
