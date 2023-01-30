@@ -42,6 +42,7 @@
     #define NES_POSIX_PROCESS
     #include <unistd.h>
     #include <sys/wait.h>
+    #include <signal.h>
     #include <string.h>
     #include <limits.h>
 #else
@@ -811,53 +812,34 @@ public:
         constexpr bool standard_streams{false};
     #endif
 
-        pid_t id{};
-        if(!standard_streams && std::empty(working_directory))
+        const pid_t id{fork()};
+        if(id < 0)
         {
-            id = vfork();
-
-            if(id < 0)
-            {
-                throw std::runtime_error{"Failed to create process. " + std::string{strerror(errno)}};
-            }
-            else if(id == 0)
-            {
-                execv(std::data(path), std::data(native_args));
-                _exit(EXIT_FAILURE);
-            }
+            throw std::runtime_error{"Failed to create process. " + std::string{strerror(errno)}};
         }
-        else
+        else if(id == 0)
         {
-            id = fork();
 
-            if(id < 0)
-            {
-                throw std::runtime_error{"Failed to create process. " + std::string{strerror(errno)}};
-            }
-            else if(id == 0)
-            {
+        #ifdef NES_PROCESS_PIPE_EXTENSION
+            if(static_cast<bool>(options & process_options::grab_stdin))
+                if(dup2(stdin_fd[0], 0) == -1)
+                    _exit(EXIT_FAILURE);
 
-            #ifdef NES_PROCESS_PIPE_EXTENSION
-                if(static_cast<bool>(options & process_options::grab_stdin))
-                    if(dup2(stdin_fd[0], 0) == -1)
-                        _exit(EXIT_FAILURE);
+            if(static_cast<bool>(options & process_options::grab_stdout))
+                if(dup2(stdout_fd[1], 1) == -1)
+                    _exit(EXIT_FAILURE);
 
-                if(static_cast<bool>(options & process_options::grab_stdout))
-                    if(dup2(stdout_fd[1], 1) == -1)
-                        _exit(EXIT_FAILURE);
+            if(static_cast<bool>(options & process_options::grab_stderr))
+                if(dup2(stderr_fd[1], 2) == -1)
+                    _exit(EXIT_FAILURE);
+        #endif
 
-                if(static_cast<bool>(options & process_options::grab_stderr))
-                    if(dup2(stderr_fd[1], 2) == -1)
-                        _exit(EXIT_FAILURE);
-            #endif
+            if(!std::empty(working_directory))
+                if(chdir(std::data(working_directory)))
+                    _exit(EXIT_FAILURE);
 
-                if(!std::empty(working_directory))
-                    if(chdir(std::data(working_directory)))
-                        _exit(EXIT_FAILURE);
-
-                execv(std::data(path), std::data(native_args));
-                _exit(EXIT_FAILURE);
-            }
+            execv(std::data(path), std::data(native_args));
+            _exit(EXIT_FAILURE);
         }
 
         m_id = id;
