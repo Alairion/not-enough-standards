@@ -36,7 +36,7 @@
 #define CHECK(expr, message) \
     if(!(expr)) \
     { \
-        std::cerr << "Error: Test failed at " << __FILE__ << "L." << __LINE__ << ":\n " << message << std::endl; \
+        std::cerr << "Error: Test failed at " << __FILE__ << " L." << __LINE__ << ":\n" << message << std::endl; \
         std::exit(1); \
     } static_cast<void>(0)
 

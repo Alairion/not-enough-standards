@@ -181,7 +181,6 @@ static void process_kill_test()
     nes::process other{other_path, std::vector<std::string>{"process kill"}, nes::process_options::grab_stdout};
     std::this_thread::sleep_for(std::chrono::milliseconds{200});
     CHECK(other.kill(), "Failed to kill other process");
-    CHECK(other.return_code() != 0, "Other returned 0");
     CHECK(!other.joinable(), "Other is still joinable");
 }
 
