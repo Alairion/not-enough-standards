@@ -92,7 +92,7 @@ public:
     checkpoint_holder(checkpoint_holder&&) = delete;
     checkpoint_holder& operator=(checkpoint_holder&&) = delete;
 
-    void set_reset_value(std::size_t value) noexcept
+    void set_reset_value(std::size_t value) noexcept override
     {
         m_reset_value = value;
     }
@@ -782,7 +782,7 @@ private:
             {
                 auto task{std::get<impl::task>(std::move(*begin))};
 
-                task.set_checkpoint_range(std::span{checkpoints_begin, checkpoints_end});
+                task.set_checkpoint_range(impl::checkpoint_range{checkpoints_begin, checkpoints_end});
                 output.emplace_back(std::in_place_type<impl::task>, std::move(task));
 
                 ++checkpoint_counter;

@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.8)
 
 project(NotEnoughStandards VERSION 1.0.2)
 
-option(NES_BUILD_EXAMPLES "Build Not Enough Standards' examples" OFF)
-option(NES_BUILD_TESTS "Build Not Enough Standards' tests" OFF)
+option(BUILD_EXAMPLES "Build Not Enough Standards' examples" OFF)
+option(BUILD_TESTING "Build Not Enough Standards' tests" OFF)
 
 add_library(NotEnoughStandards INTERFACE)
+set_target_properties(NotEnoughStandards PROPERTIES CXX_STANDARD 20)
 
 target_include_directories(NotEnoughStandards INTERFACE
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
@@ -31,47 +32,64 @@ if(UNIX)
     endif()
 endif()
 
-if(NES_BUILD_EXAMPLES)
-    add_executable("NotEnoughStandards_example" "main.cpp")
-    target_link_libraries("NotEnoughStandards_example" NotEnoughStandards)
+if(BUILD_EXAMPLES)
+    add_executable(NotEnoughStandardsExample main.cpp)
+    set_target_properties(NotEnoughStandardsExample PROPERTIES CXX_STANDARD 20)
+    set_target_properties(NotEnoughStandardsExample PROPERTIES CXX_STANDARD_REQUIRED ON)
+    target_link_libraries(NotEnoughStandardsExample NotEnoughStandards)
 
     if(UNIX)
-        target_link_libraries("NotEnoughStandards_example" -rdynamic)
+        target_link_libraries(NotEnoughStandardsExample -rdynamic)
     endif()
 
-    add_executable("NotEnoughStandards_example_other" "other.cpp")
-    target_link_libraries("NotEnoughStandards_example_other" NotEnoughStandards)
+    add_executable(NotEnoughStandardsExampleOther other.cpp)
+    set_target_properties(NotEnoughStandardsExampleOther PROPERTIES CXX_STANDARD 20)
+    set_target_properties(NotEnoughStandardsExampleOther PROPERTIES CXX_STANDARD_REQUIRED ON)
+    target_link_libraries(NotEnoughStandardsExampleOther NotEnoughStandards)
 endif()
 
-if(NES_BUILD_TESTS)
-    add_executable("NotEnoughStandards_test" "tests/process.cpp")
-    target_link_libraries("NotEnoughStandards_test" NotEnoughStandards)
+if(BUILD_TESTING)
+    add_executable(NotEnoughStandardsTest tests/common.hpp tests/process.cpp)
+    set_target_properties(NotEnoughStandardsTest PROPERTIES CXX_STANDARD 20)
+    set_target_properties(NotEnoughStandardsTest PROPERTIES CXX_STANDARD_REQUIRED ON)
+    target_link_libraries(NotEnoughStandardsTest NotEnoughStandards)
 
-    add_executable("NotEnoughStandards_test_other" "tests/process_other.cpp")
-    target_link_libraries("NotEnoughStandards_test_other" NotEnoughStandards)
+    add_executable(NotEnoughStandardsTestOther tests/common.hpp tests/process_other.cpp)
+    set_target_properties(NotEnoughStandardsTestOther PROPERTIES CXX_STANDARD 20)
+    set_target_properties(NotEnoughStandardsTestOther PROPERTIES CXX_STANDARD_REQUIRED ON)
+    target_link_libraries(NotEnoughStandardsTestOther NotEnoughStandards)
 
-    add_library("NotEnoughStandards_test_lib" SHARED "tests/library.cpp")
-    set_target_properties("NotEnoughStandards_test_lib" PROPERTIES PREFIX "")
-    target_link_libraries("NotEnoughStandards_test_lib" NotEnoughStandards)
+    add_library(NotEnoughStandardsTestLib SHARED tests/common.hpp tests/library.cpp)
+    set_target_properties(NotEnoughStandardsTestLib PROPERTIES PREFIX "")
+    set_target_properties(NotEnoughStandardsTestLib PROPERTIES CXX_STANDARD 20)
+    set_target_properties(NotEnoughStandardsTestLib PROPERTIES CXX_STANDARD_REQUIRED ON)
+    target_link_libraries(NotEnoughStandardsTestLib NotEnoughStandards)
+
+    enable_testing()
+    add_test(NAME NotEnoughStandardsTest COMMAND NotEnoughStandardsTest)
+    get_property(multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    if(multi_config)
+        set_tests_properties(NotEnoughStandardsTest PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>)
+    endif()
 endif()
 
 include(CMakePackageConfigHelpers)
 
 configure_package_config_file(
-    "${PROJECT_SOURCE_DIR}/cmake/NotEnoughStandards.cmake.in"
-    "${PROJECT_BINARY_DIR}/NotEnoughStandardsConfig.cmake"
+    ${PROJECT_SOURCE_DIR}/cmake/NotEnoughStandards.cmake.in
+    ${PROJECT_BINARY_DIR}/NotEnoughStandardsConfig.cmake
     INSTALL_DESTINATION lib/cmake/NotEnoughStandards
 )
 
 write_basic_package_version_file(
-    "${PROJECT_BINARY_DIR}/NotEnoughStandardsConfigVersion.cmake"
+    ${PROJECT_BINARY_DIR}/NotEnoughStandardsConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion
 )
 
 install(TARGETS NotEnoughStandards
         EXPORT NotEnoughStandardsTargets
-        PUBLIC_HEADER DESTINATION "include" COMPONENT Development
+        PUBLIC_HEADER DESTINATION include COMPONENT Development
 )
 
 install(EXPORT NotEnoughStandardsTargets
@@ -79,12 +97,12 @@ install(EXPORT NotEnoughStandardsTargets
         NAMESPACE NotEnoughStandards::
 )
 
-install(FILES "${PROJECT_BINARY_DIR}/NotEnoughStandardsConfigVersion.cmake"
-              "${PROJECT_BINARY_DIR}/NotEnoughStandardsConfig.cmake"
-        DESTINATION "lib/cmake/NotEnoughStandards"
+install(FILES ${PROJECT_BINARY_DIR}/NotEnoughStandardsConfigVersion.cmake
+              ${PROJECT_BINARY_DIR}/NotEnoughStandardsConfig.cmake
+        DESTINATION lib/cmake/NotEnoughStandards
 )
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
-        DESTINATION "include"
+        DESTINATION include
 )
 

@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <array>
 #include <cassert>
+#include <cstdlib>
 #include <random>
 
 #include <nes/pipe.hpp>
@@ -15,22 +16,17 @@
 #include <nes/named_mutex.hpp>
 #include <nes/semaphore.hpp>
 #include <nes/named_semaphore.hpp>
-
-#if __cplusplus >= 202002L
-
 #include <nes/thread_pool.hpp>
 
-#endif
+#include "common.hpp"
 
 #if defined(NES_WIN32_PROCESS)
-    constexpr const char* other_path{"not_enough_standards_test_other.exe"};
-    constexpr const char* lib_path{"not_enough_standards_test_lib.dll"};
+    constexpr const char* other_path{"NotEnoughStandardsTestOther.exe"};
+    constexpr const char* lib_path{"NotEnoughStandardsTestLib.dll"};
 #elif defined(NES_POSIX_PROCESS)
-    constexpr const char* other_path{"./not_enough_standards_test_other"};
-    constexpr const char* lib_path{"./not_enough_standards_test_lib.so"};
+    constexpr const char* other_path{"./NotEnoughStandardsTestOther"};
+    constexpr const char* lib_path{"./NotEnoughStandardsTestLib.so"};
 #endif
-
-std::int32_t pow(std::int32_t value, std::uint32_t exponent);
 
 static void shared_library_test()
 {
@@ -38,16 +34,10 @@ static void shared_library_test()
 
     auto func = lib.load<std::int32_t()>("nes_lib_func");
 
-    assert(func);
-    assert(func() == 42);
+    CHECK(func, "Can not load library \"" << lib_path << "\"");
+    const auto value{func()};
+    CHECK(value == 42, "Function returned wrong value " << value);
 }
-
-enum class data_type : std::uint32_t
-{
-    uint32 = 1,
-    float64,
-    string
-};
 
 static void a_thread(nes::basic_pipe_istream<char>& is) noexcept
 {
@@ -58,25 +48,25 @@ static void a_thread(nes::basic_pipe_istream<char>& is) noexcept
     std::uint64_t str_size{};
 
     is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
-    assert(type == data_type::uint32);
+    CHECK(type == data_type::uint32, "Wrong data type, expected uint32 got " << data_type_to_string(type));
 
     is.read(reinterpret_cast<char*>(&uint_value), sizeof(std::uint32_t));
-    assert(uint_value == 42);
+    CHECK(uint_value == 42, "Wrong value, expected 42 got " << uint_value);
 
     is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
-    assert(type == data_type::float64);
+    CHECK(type == data_type::float64, "Wrong data type, expected float64 got " << data_type_to_string(type));
 
     is.read(reinterpret_cast<char*>(&float_value), sizeof(double));
-    assert(float_value > 3.13 && float_value < 3.15);
+    CHECK(float_value > 3.139 && float_value < 3.141, "Wrong value, expected 3.14 got " << float_value);
 
     is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
-    assert(type == data_type::string);
+    CHECK(type == data_type::string, "Wrong data type, expected string got " << data_type_to_string(type));
 
     is.read(reinterpret_cast<char*>(&str_size), sizeof(std::uint64_t));
     str_value.resize(str_size);
     is.read(std::data(str_value), static_cast<std::streamsize>(str_size));
 
-    assert(str_value == "Hello world!");
+    CHECK(str_value == "Hello world!", "Wrong value, expected \"Hello world!\" got \"" << str_value << "\"");
 }
 
 static void pipe_test()
@@ -108,7 +98,9 @@ static void pipe_test()
     os.close();
 
     if(thread.joinable())
+    {
         thread.join();
+    }
 }
 
 static void another_thread(const std::array<std::uint32_t, 8>& data, nes::semaphore& semaphore)
@@ -117,7 +109,7 @@ static void another_thread(const std::array<std::uint32_t, 8>& data, nes::semaph
     {
         semaphore.acquire();
 
-        assert(data[i] == i);
+        CHECK(data[i] == i, "Wrong value expected " << i << " got " << data[i]);
     }
 }
 
@@ -135,7 +127,9 @@ static void semaphore_test()
     }
 
     if(thread.joinable())
+    {
         thread.join();
+    }
 }
 
 static void named_pipe_test()
@@ -143,8 +137,7 @@ static void named_pipe_test()
     nes::process other{other_path, std::vector<std::string>{"named pipe"}, nes::process_options::grab_stdout};
 
     nes::pipe_ostream os{"nes_test_pipe"};
-    if(!os)
-        throw std::runtime_error{"Failed to open pipe."};
+    CHECK(os, "Failed to open pipe.");
 
     const data_type     uint_type {data_type::uint32};
     const std::uint32_t uint_value{42};
@@ -168,53 +161,53 @@ static void named_pipe_test()
 
     os.close();
 
-    if(other.joinable())
-        other.join();
-
-    assert(other.return_code() == 0);
+    CHECK(other.joinable(), "Process is not joinable");
+    other.join();
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
 }
 
 static void process_test()
 {
-    std::cout << "Current process has id " << nes::this_process::get_id() << " and its current directory is \"" << nes::this_process::working_directory() << "\"" << std::endl;
-
     nes::process other{other_path, {"Hey!", "\\\"12\"\"\\\\\\", "\\42\\", "It's \"me\"!"}, nes::process_options::grab_stdout};
     std::cout << other.stdout_stream().rdbuf() << std::endl;
 
-    if(other.joinable())
-        other.join();
-
-    assert(other.return_code() == 0);
+    CHECK(other.joinable(), "Process is not joinable");
+    other.join();
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
 }
 
 static void process_kill_test()
 {
     nes::process other{other_path, std::vector<std::string>{"process kill"}, nes::process_options::grab_stdout};
-    std::this_thread::sleep_for(std::chrono::seconds{3});
-    other.kill();
-
-    std::cout << other.stdout_stream().rdbuf() << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds{200});
+    CHECK(other.kill(), "Failed to kill other process");
+    CHECK(!other.joinable(), "Other is still joinable");
 }
 
 static void shared_memory_test()
 {
     nes::shared_memory memory{"nes_test_shared_memory", sizeof(std::uint64_t)};
     auto value{memory.map<std::uint64_t>(0)};
-
-    assert(value);
+    CHECK(value, "Failed to map shared memory");
 
     *value = 42;
 
-    assert(*value == 42);
+    CHECK(*value == 42, "Failed to write shared memory");
 
     nes::process other{other_path, std::vector<std::string>{"shared memory"}, nes::process_options::grab_stdout};
-    std::cout << other.stdout_stream().rdbuf() << std::endl;
 
-    if(other.joinable())
-        other.join();
+    CHECK(other.joinable(), "Process is not joinable");
+    other.join();
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
 
-    assert(other.return_code() == 0);
-    assert(*value == 16777216);
+    CHECK(*value == 16777216, "Wrong value in shared memory, expected 16777216 got " << *value);
+
+    other = nes::process{other_path, std::vector<std::string>{"shared memory bad"}, nes::process_options::grab_stdout};
+
+    CHECK(other.joinable(), "Process is not joinable");
+    other.join();
+    CHECK(other.return_code() != 0, "Other process must return an error");
+    CHECK(*value == 16777216, "Wrong value in shared memory, expected 16777216 got " << *value);
 }
 
 static void named_mutex_test()
@@ -224,13 +217,11 @@ static void named_mutex_test()
 
     nes::process other{other_path, std::vector<std::string>{"named mutex"}, nes::process_options::grab_stdout};
 
-    std::this_thread::sleep_for(std::chrono::milliseconds{500});
     lock.unlock();
 
-    std::cout << other.stdout_stream().rdbuf() << std::endl;
-
-    if(other.joinable())
-        other.join();
+    CHECK(other.joinable(), "Process is not joinable");
+    other.join();
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
 }
 
 static void timed_named_mutex_test()
@@ -240,13 +231,11 @@ static void timed_named_mutex_test()
 
     nes::process other{other_path, std::vector<std::string>{"timed named mutex"}, nes::process_options::grab_stdout};
 
-    std::this_thread::sleep_for(std::chrono::milliseconds{1000});
     lock.unlock();
 
-    std::cout << other.stdout_stream().rdbuf() << std::endl;
-
-    if(other.joinable())
-        other.join();
+    CHECK(other.joinable(), "Process is not joinable");
+    other.join();
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
 }
 
 static void named_semaphore_test()
@@ -257,55 +246,22 @@ static void named_semaphore_test()
 
     for(std::size_t i{}; i < 8; ++i)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds{100});
         semaphore.release();
     }
 
-    std::cout << other.stdout_stream().rdbuf() << std::endl;
-
-    if(other.joinable())
-        other.join();
+    CHECK(other.joinable(), "Process is not joinable");
+    other.join();
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
 }
-
-#if __cplusplus >= 202002L
 
 static void thread_pool_test()
 {
-    static constexpr std::size_t buffer_size{32};
+    static constexpr std::size_t buffer_size{8};
 
     //Some buffers
-    std::array<std::uint32_t, buffer_size> input{};
+    std::array<std::uint32_t, buffer_size> input{32, 543, 4329, 12, 542, 656, 523, 98473};
     std::array<std::uint32_t, buffer_size> temp{};
     std::array<std::uint32_t, buffer_size> output{};
-
-    const auto print_buffers = [&input, &temp, &output]()
-    {
-        const auto print_buffer = [](const std::array<std::uint32_t, buffer_size>& buffer)
-        {
-            for(auto value : buffer)
-            {
-                std::cout << value << ",";
-            }
-        };
-
-        std::cout << "input:  ";
-        print_buffer(input);
-        std::cout << "\ntemp:   ";
-        print_buffer(temp);
-        std::cout << "\noutput: ";
-        print_buffer(output);
-
-        std::cout << std::endl;
-    };
-
-    //Fill the buffer with random values
-    std::mt19937 rng{std::random_device{}()};
-    std::uniform_int_distribution<std::uint32_t> dist{1, 9};
-
-    for(auto& input_value : input)
-    {
-        input_value = dist(rng);
-    }
 
     //The task builder
     nes::task_builder builder{};
@@ -330,31 +286,18 @@ static void thread_pool_test()
     //Create a thread pool to run our task list.
     nes::thread_pool thread_pool{};
 
-    std::cout << "Initial state:" << std::endl;
-    print_buffers();
-    std::cout << "Launching first the work..." << std::endl;
-
     std::future<nes::task_list> future{thread_pool.push(builder.build())};
-
-    std::cout << "Work started..." << std::endl;
-
     checkpoint.wait();
 
-    std::cout << "First dispatch done:" << std::endl;
-    print_buffers();
-    std::cout << "Launching second dispatch..." << std::endl;
+    constexpr std::array<std::uint32_t, buffer_size> temp_expected{64, 1086, 8658, 24, 1084, 1312, 1046, 196946};
+    CHECK(temp == temp_expected, "Wrong array values");
 
     fence.signal();
-
-    std::cout << "Second dispatch started..." << std::endl;
-
     future.wait();
 
-    std::cout << "Second dispatch done:" << std::endl;
-    print_buffers();
+    constexpr std::array<std::uint32_t, buffer_size> output_expected{210476, 214564, 244852, 210316, 214556, 215468, 214404, 998004};
+    CHECK(output == output_expected, "Wrong array values");
 }
-
-#endif
 
 int main()
 {
@@ -370,17 +313,13 @@ int main()
         named_mutex_test();
         timed_named_mutex_test();
         named_semaphore_test();
-
-        #if __cplusplus >= 202002L
         thread_pool_test();
-        #else
-        std::cout << "Thread pools can not be tested (compiler does not support C++20): " << __cplusplus << std::endl;
-        #endif
 
-        std::cout << "Tests passed succesfully." << std::endl;
+        std::cout << "All tests passed!" << std::endl;
     }
     catch(const std::exception& e)
     {
-        std::cout << e.what() << std::endl;
+        CHECK(false, e.what());
+        return 1;
     }
 }
