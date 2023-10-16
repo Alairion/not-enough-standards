@@ -14,7 +14,6 @@
 #include <nes/named_mutex.hpp>
 #include <nes/semaphore.hpp>
 #include <nes/named_semaphore.hpp>
-#include <nes/hash.hpp>
 #include <nes/thread_pool.hpp>
 /*
 #if defined(NES_WIN32_SHARED_LIBRARY)
