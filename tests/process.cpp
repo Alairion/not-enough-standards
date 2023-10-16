@@ -21,11 +21,11 @@
 #include "common.hpp"
 
 #if defined(NES_WIN32_PROCESS)
-    constexpr const char* other_path{"NotEnoughStandardsTestOther.exe"};
-    constexpr const char* lib_path{"NotEnoughStandardsTestLib.dll"};
+constexpr const char* other_path{"NotEnoughStandardsTestOther.exe"};
+constexpr const char* lib_path{"NotEnoughStandardsTestLib.dll"};
 #elif defined(NES_POSIX_PROCESS)
-    constexpr const char* other_path{"./NotEnoughStandardsTestOther"};
-    constexpr const char* lib_path{"./NotEnoughStandardsTestLib.so"};
+constexpr const char* other_path{"./NotEnoughStandardsTestOther"};
+constexpr const char* lib_path{"./NotEnoughStandardsTestLib.so"};
 #endif
 
 static void shared_library_test()
@@ -41,10 +41,10 @@ static void shared_library_test()
 
 static void a_thread(nes::basic_pipe_istream<char>& is) noexcept
 {
-    data_type     type{};
+    data_type type{};
     std::uint32_t uint_value{};
-    double        float_value{};
-    std::string   str_value{};
+    double float_value{};
+    std::string str_value{};
     std::uint64_t str_size{};
 
     is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
@@ -75,20 +75,20 @@ static void pipe_test()
 
     std::thread thread{a_thread, std::ref(is)};
 
-    const data_type     uint_type {data_type::uint32};
+    const data_type uint_type{data_type::uint32};
     const std::uint32_t uint_value{42};
 
     os.write(reinterpret_cast<const char*>(&uint_type), sizeof(data_type));
     os.write(reinterpret_cast<const char*>(&uint_value), sizeof(std::uint32_t));
 
-    const data_type float_type {data_type::float64};
-    const double    float_value{3.14};
+    const data_type float_type{data_type::float64};
+    const double float_value{3.14};
 
-    os.write(reinterpret_cast<const char*>(&float_type),  sizeof(data_type));
+    os.write(reinterpret_cast<const char*>(&float_type), sizeof(data_type));
     os.write(reinterpret_cast<const char*>(&float_value), sizeof(double));
 
-    const data_type     str_type {data_type::string};
-    const std::string   str_value{"Hello world!"};
+    const data_type str_type{data_type::string};
+    const std::string str_value{"Hello world!"};
     const std::uint64_t size_size{std::size(str_value)};
 
     os.write(reinterpret_cast<const char*>(&str_type), sizeof(data_type));
@@ -139,20 +139,20 @@ static void named_pipe_test()
     nes::pipe_ostream os{"nes_test_pipe"};
     CHECK(os, "Failed to open pipe.");
 
-    const data_type     uint_type {data_type::uint32};
+    const data_type uint_type{data_type::uint32};
     const std::uint32_t uint_value{42};
 
     os.write(reinterpret_cast<const char*>(&uint_type), sizeof(data_type));
     os.write(reinterpret_cast<const char*>(&uint_value), sizeof(std::uint32_t));
 
-    const data_type float_type {data_type::float64};
-    const double    float_value{3.14};
+    const data_type float_type{data_type::float64};
+    const double float_value{3.14};
 
-    os.write(reinterpret_cast<const char*>(&float_type),  sizeof(data_type));
+    os.write(reinterpret_cast<const char*>(&float_type), sizeof(data_type));
     os.write(reinterpret_cast<const char*>(&float_value), sizeof(double));
 
-    const data_type     str_type {data_type::string};
-    const std::string   str_value{"Hello world!"};
+    const data_type str_type{data_type::string};
+    const std::string str_value{"Hello world!"};
     const std::uint64_t size_size{std::size(str_value)};
 
     os.write(reinterpret_cast<const char*>(&str_type), sizeof(data_type));
@@ -163,17 +163,22 @@ static void named_pipe_test()
 
     CHECK(other.joinable(), "Process is not joinable");
     other.join();
-    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n"
+                                                                      << other.stdout_stream().rdbuf());
 }
 
 static void process_test()
 {
-    nes::process other{other_path, {"Hey!", "\\\"12\"\"\\\\\\", "\\42\\", "It's \"me\"!"}, nes::process_options::grab_stdout};
+    nes::process other{
+    other_path, {"Hey!", "\\\"12\"\"\\\\\\", "\\42\\", "It's \"me\"!"},
+     nes::process_options::grab_stdout
+    };
     std::cout << other.stdout_stream().rdbuf() << std::endl;
 
     CHECK(other.joinable(), "Process is not joinable");
     other.join();
-    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n"
+                                                                      << other.stdout_stream().rdbuf());
 }
 
 static void process_kill_test()
@@ -198,7 +203,8 @@ static void shared_memory_test()
 
     CHECK(other.joinable(), "Process is not joinable");
     other.join();
-    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n"
+                                                                      << other.stdout_stream().rdbuf());
 
     CHECK(*value == 16777216, "Wrong value in shared memory, expected 16777216 got " << *value);
 
@@ -221,7 +227,8 @@ static void named_mutex_test()
 
     CHECK(other.joinable(), "Process is not joinable");
     other.join();
-    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n"
+                                                                      << other.stdout_stream().rdbuf());
 }
 
 static void timed_named_mutex_test()
@@ -235,7 +242,8 @@ static void timed_named_mutex_test()
 
     CHECK(other.joinable(), "Process is not joinable");
     other.join();
-    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n"
+                                                                      << other.stdout_stream().rdbuf());
 }
 
 static void named_semaphore_test()
@@ -251,19 +259,20 @@ static void named_semaphore_test()
 
     CHECK(other.joinable(), "Process is not joinable");
     other.join();
-    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n" << other.stdout_stream().rdbuf());
+    CHECK(other.return_code() == 0, "Other process failed with code " << other.return_code() << ":\n"
+                                                                      << other.stdout_stream().rdbuf());
 }
 
 static void thread_pool_test()
 {
     static constexpr std::size_t buffer_size{8};
 
-    //Some buffers
+    // Some buffers
     std::array<std::uint32_t, buffer_size> input{32, 543, 4329, 12, 542, 656, 523, 98473};
     std::array<std::uint32_t, buffer_size> temp{};
     std::array<std::uint32_t, buffer_size> output{};
 
-    //The task builder
+    // The task builder
     nes::task_builder builder{};
 
     builder.dispatch(buffer_size, 1, 1, [&input, &temp](std::uint32_t x, std::uint32_t y [[maybe_unused]], std::uint32_t z [[maybe_unused]])
@@ -283,7 +292,7 @@ static void thread_pool_test()
         }
     });
 
-    //Create a thread pool to run our task list.
+    // Create a thread pool to run our task list.
     nes::thread_pool thread_pool{};
 
     std::future<nes::task_list> future{thread_pool.push(builder.build())};

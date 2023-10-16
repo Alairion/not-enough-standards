@@ -30,11 +30,13 @@
 #define NOT_ENOUGH_STANDARDS_THREAD_POOL
 
 #ifdef NES_INLINE_NAMESPACE
-#define NES_INLINE_NAMESPACE_BEGIN inline namespace NES_INLINE_NAMESPACE {
-#define NES_INLINE_NAMESPACE_END }
+    #define NES_INLINE_NAMESPACE_BEGIN        \
+        inline namespace NES_INLINE_NAMESPACE \
+        {
+    #define NES_INLINE_NAMESPACE_END }
 #else
-#define NES_INLINE_NAMESPACE_BEGIN
-#define NES_INLINE_NAMESPACE_END
+    #define NES_INLINE_NAMESPACE_BEGIN
+    #define NES_INLINE_NAMESPACE_END
 #endif
 
 #include <vector>
@@ -61,9 +63,8 @@ class checkpoint_holder_base
 {
 public:
     checkpoint_holder_base(bool barrier)
-    :m_barrier{barrier}
+    : m_barrier{barrier}
     {
-
     }
 
     virtual ~checkpoint_holder_base() = default;
@@ -91,7 +92,7 @@ class checkpoint_holder final : public checkpoint_holder_base
 {
 public:
     explicit checkpoint_holder(bool barrier, std::future<T>*& user_reference)
-    :checkpoint_holder_base{barrier}
+    : checkpoint_holder_base{barrier}
     {
         user_reference = &m_future;
     }
@@ -110,7 +111,7 @@ public:
     void reset() override
     {
         m_promise = std::promise<void>{};
-        m_future  = m_promise.get_future();
+        m_future = m_promise.get_future();
 
         m_counter.store(m_reset_value, std::memory_order_release);
     }
@@ -134,19 +135,18 @@ public:
 
 private:
     std::promise<T> m_promise{};
-    std::future<T>  m_future{};
+    std::future<T> m_future{};
     std::atomic<std::size_t> m_counter{};
     std::size_t m_reset_value{};
 };
 
-class checkpoint
+class checkpoint // checkpoints and barriers type
 {
 public:
     template<typename T>
     checkpoint(bool barrier, std::future<T>*& user_reference)
-    :m_checkpoint{std::make_unique<checkpoint_holder<T>>(barrier, user_reference)}
+    : m_checkpoint{std::make_unique<checkpoint_holder<T>>(barrier, user_reference)}
     {
-
     }
 
     ~checkpoint() = default;
@@ -191,7 +191,7 @@ private:
 
 using checkpoint_range = std::span<checkpoint_holder_base*>;
 
-class task_holder_base
+class task_holder_base // base class for type erasing in task
 {
 public:
     task_holder_base() = default;
@@ -204,6 +204,7 @@ public:
     virtual void reset() = 0;
     virtual void execute() = 0;
 
+    // checkpoints to count down once this task is done
     void set_checkpoint_range(checkpoint_range checkpoints)
     {
         m_checkpoints = checkpoints;
@@ -222,14 +223,14 @@ private:
     checkpoint_range m_checkpoints{};
 };
 
+// task holder that not returns a value, used for execute function
 template<typename Func>
 class task_holder final : public task_holder_base
 {
 public:
     task_holder(Func&& func)
-    :m_func{std::move(func)}
+    : m_func{std::move(func)}
     {
-
     }
 
     ~task_holder() = default;
@@ -246,19 +247,19 @@ public:
 
     void reset() override
     {
-
     }
 
 private:
     Func m_func;
 };
 
+// task holder that returns a value, used for invoke function
 template<typename Func, typename Ret>
 class return_task_holder final : public task_holder_base
 {
 public:
     return_task_holder(Func&& func, std::future<Ret>*& user_reference)
-    :m_func{std::move(func)}
+    : m_func{std::move(func)}
     {
         user_reference = &m_future;
     }
@@ -287,30 +288,28 @@ public:
     void reset() override
     {
         m_promise = std::promise<Ret>{};
-        m_future  = m_promise.get_future();
+        m_future = m_promise.get_future();
     }
 
 private:
     Func m_func;
     std::promise<Ret> m_promise{};
-    std::future<Ret>  m_future{};
+    std::future<Ret> m_future{};
 };
 
-class task
+class task // actual execution unit
 {
 public:
     template<typename Func>
     task(Func&& func)
-    :m_holder{std::make_unique<task_holder<Func>>(std::forward<Func>(func))}
+    : m_holder{std::make_unique<task_holder<Func>>(std::forward<Func>(func))}
     {
-
     }
 
     template<typename Func, typename Ret>
     task(Func&& func, std::future<Ret>*& user_reference)
-    :m_holder{std::make_unique<return_task_holder<Func, Ret>>(std::forward<Func>(func), user_reference)}
+    : m_holder{std::make_unique<return_task_holder<Func, Ret>>(std::forward<Func>(func), user_reference)}
     {
-
     }
 
     ~task() = default;
@@ -383,9 +382,8 @@ class fence
 {
 public:
     fence()
-    :m_holder{std::make_unique<fence_holder>()}
+    : m_holder{std::make_unique<fence_holder>()}
     {
-
     }
 
     ~fence() = default;
@@ -439,9 +437,8 @@ public:
     task_result& operator=(const task_result&) = delete;
 
     task_result(task_result&& other) noexcept
-    :m_state{std::exchange(other.m_state, nullptr)}
+    : m_state{std::exchange(other.m_state, nullptr)}
     {
-
     }
 
     task_result& operator=(task_result&& other) noexcept
@@ -495,9 +492,8 @@ public:
     task_fence& operator=(const task_fence&) = delete;
 
     task_fence(task_fence&& other) noexcept
-    :m_holder{std::exchange(other.m_holder, nullptr)}
+    : m_holder{std::exchange(other.m_holder, nullptr)}
     {
-
     }
 
     task_fence& operator=(task_fence&& other) noexcept
@@ -544,8 +540,8 @@ private:
                 }
 
                 task.reset();
-
-            }, task);
+            },
+            task);
         }
 
         m_current = std::begin(m_tasks);
@@ -602,7 +598,7 @@ class task_builder
 {
 public:
     explicit task_builder(std::uint32_t thread_count = std::thread::hardware_concurrency())
-    :m_thread_count{thread_count != 0 ? thread_count : 8}
+    : m_thread_count{thread_count != 0 ? thread_count : 8}
     {
         m_tasks.reserve(32);
     }
@@ -616,7 +612,7 @@ public:
     template<typename Func, typename... Args>
     void execute(Func&& func, Args&&... args)
     {
-        push_task([func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+        push_task([func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
         {
             std::invoke(func, args...);
         });
@@ -630,10 +626,11 @@ public:
 
         result_type output{};
 
-        push_task([func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+        push_task([func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
         {
             return std::invoke(func, args...);
-        }, output.m_state);
+        },
+        output.m_state);
 
         return output;
     }
@@ -655,7 +652,7 @@ public:
                 {
                     for(std::uint32_t current_x{}; current_x < x; ++current_x)
                     {
-                        push_task([current_x, current_y, current_z, func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+                        push_task([current_x, current_y, current_z, func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
                         {
                             std::invoke(func, current_x, current_y, current_z, args...);
                         });
@@ -680,7 +677,7 @@ public:
                     --remainder;
                 }
 
-                push_task([calls, count, x, y, z_factor = (x * y), func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+                push_task([calls, count, x, y, z_factor = (x * y), func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
                 {
                     for(std::uint64_t i{calls}; i < calls + count; ++i)
                     {
@@ -723,13 +720,13 @@ public:
 
     task_list build()
     {
-        barrier(); //this barrier is used by the pool to know when all the tasks are done and the list can be returned to user
+        barrier(); // this barrier is used by the pool to know when all the tasks are done and the list can be returned to user
 
         task_list output{};
         output.m_tasks.reserve(std::size(m_tasks));
         output.m_checkpoints.reserve(count_checkpoints());
 
-        auto begin  {std::begin(m_tasks)};
+        auto begin{std::begin(m_tasks)};
         auto current{begin};
 
         std::size_t checkpoints_begin{};
@@ -915,7 +912,7 @@ public:
     template<typename Func, typename... Args>
     void execute(Func&& func, Args&&... args)
     {
-        push_impl([func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+        push_impl([func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
         {
             std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
         });
@@ -926,16 +923,16 @@ public:
     template<typename Func, typename... Args>
     auto invoke(Func&& func, Args&&... args)
     {
-        using return_type  = std::invoke_result_t<Func, Args...>;
+        using return_type = std::invoke_result_t<Func, Args...>;
         using promise_type = std::promise<return_type>;
-        using future_type  = std::future<return_type>;
+        using future_type = std::future<return_type>;
 
         promise_type promise{};
-        future_type  future {promise.get_future()};
+        future_type future{promise.get_future()};
 
         if constexpr(std::is_same_v<return_type, void>)
         {
-            push_impl([promise = std::move(promise), func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+            push_impl([promise = std::move(promise), func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
             {
                 std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
                 promise.set_value();
@@ -943,7 +940,7 @@ public:
         }
         else
         {
-            push_impl([promise = std::move(promise), func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+            push_impl([promise = std::move(promise), func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
             {
                 promise.set_value(std::invoke(std::forward<Func>(func), std::forward<Args>(args)...));
             });

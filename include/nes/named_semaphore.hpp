@@ -49,13 +49,16 @@
 #endif
 
 #ifdef NES_INLINE_NAMESPACE
-#define NES_INLINE_NAMESPACE_BEGIN inline namespace NES_INLINE_NAMESPACE {
-#define NES_INLINE_NAMESPACE_END }
+    #define NES_INLINE_NAMESPACE_BEGIN        \
+        inline namespace NES_INLINE_NAMESPACE \
+        {
+    #define NES_INLINE_NAMESPACE_END }
 #else
-#define NES_INLINE_NAMESPACE_BEGIN
-#define NES_INLINE_NAMESPACE_END
+    #define NES_INLINE_NAMESPACE_BEGIN
+    #define NES_INLINE_NAMESPACE_END
 #endif
 
+#include <cassert>
 #include <string>
 #include <chrono>
 #include <limits>
@@ -88,7 +91,9 @@ public:
             {
                 m_handle = OpenSemaphoreW(SYNCHRONIZE, FALSE, std::data(native_name));
                 if(!m_handle)
+                {
                     throw std::runtime_error{"Failed to open semaphore. " + get_error_message()};
+                }
             }
             else
             {
@@ -110,7 +115,9 @@ public:
     void acquire()
     {
         if(WaitForSingleObject(m_handle, INFINITE))
+        {
             throw std::runtime_error{"Failed to decrement semaphore count. " + get_error_message()};
+        }
     }
 
     bool try_acquire()
@@ -121,7 +128,9 @@ public:
     void release()
     {
         if(!ReleaseSemaphore(m_handle, 1, nullptr))
+        {
             throw std::runtime_error{"Failed to increment semaphore count. " + get_error_message()};
+        }
     }
 
     native_handle_type native_handle() const noexcept
@@ -135,13 +144,17 @@ private:
         assert(std::size(path) < 0x7FFFFFFFu && "Wrong path.");
 
         if(std::empty(path))
+        {
             return {};
+        }
 
         std::wstring out_path{};
         out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
 
-        if (!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+        if(!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+        {
             throw std::runtime_error{"Failed to convert the path to wide."};
+        }
 
         return out_path;
     }
@@ -172,7 +185,9 @@ public:
             {
                 m_handle = OpenSemaphoreW(SYNCHRONIZE, FALSE, std::data(native_name));
                 if(!m_handle)
+                {
                     throw std::runtime_error{"Failed to open semaphore. " + get_error_message()};
+                }
             }
             else
             {
@@ -194,7 +209,9 @@ public:
     void acquire()
     {
         if(WaitForSingleObject(m_handle, INFINITE))
+        {
             throw std::runtime_error{"Failed to decrement semaphore count. " + get_error_message()};
+        }
     }
 
     bool try_acquire()
@@ -213,7 +230,9 @@ public:
     {
         const auto current_time{Clock::now()};
         if(time_point < current_time)
+        {
             return try_acquire();
+        }
 
         return try_acquire_for(time_point - current_time);
     }
@@ -221,7 +240,9 @@ public:
     void release()
     {
         if(!ReleaseSemaphore(m_handle, 1, nullptr))
+        {
             throw std::runtime_error{"Failed to increment semaphore count. " + get_error_message()};
+        }
     }
 
     native_handle_type native_handle() const noexcept
@@ -235,13 +256,17 @@ private:
         assert(std::size(path) < 0x7FFFFFFFu && "Wrong path.");
 
         if(std::empty(path))
+        {
             return {};
+        }
 
         std::wstring out_path{};
         out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
 
-        if (!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+        if(!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+        {
             throw std::runtime_error{"Failed to convert the path to wide."};
+        }
 
         return out_path;
     }
@@ -280,7 +305,9 @@ public:
 
         m_handle = sem_open(std::data(native_name), O_CREAT, 0660, initial_count);
         if(m_handle == SEM_FAILED)
+        {
             throw std::runtime_error{"Failed to create semaphore. " + std::string{strerror(errno)}};
+        }
     }
 
     ~named_semaphore()
@@ -296,7 +323,9 @@ public:
     void acquire()
     {
         if(sem_wait(m_handle) == -1)
+        {
             throw std::runtime_error{"Failed to decrement semaphore count. " + std::string{strerror(errno)}};
+        }
     }
 
     bool try_acquire()
@@ -307,7 +336,9 @@ public:
     void release()
     {
         if(sem_post(m_handle) == -1)
+        {
             throw std::runtime_error{"Failed to increment semaphore count. " + std::string{strerror(errno)}};
+        }
     }
 
     native_handle_type native_handle() const noexcept
@@ -331,7 +362,9 @@ public:
 
         m_handle = sem_open(std::data(native_name), O_CREAT, 0660, initial_count);
         if(m_handle == SEM_FAILED)
+        {
             throw std::runtime_error{"Failed to create semaphore. " + std::string{strerror(errno)}};
+        }
     }
 
     ~timed_named_semaphore()
@@ -347,7 +380,9 @@ public:
     void acquire()
     {
         if(sem_wait(m_handle) == -1)
+        {
             throw std::runtime_error{"Failed to decrement semaphore count. " + std::string{strerror(errno)}};
+        }
     }
 
     bool try_acquire()
@@ -377,7 +412,9 @@ public:
     void release()
     {
         if(sem_post(m_handle) == -1)
+        {
             throw std::runtime_error{"Failed to increment semaphore count. " + std::string{strerror(errno)}};
+        }
     }
 
     native_handle_type native_handle() const noexcept

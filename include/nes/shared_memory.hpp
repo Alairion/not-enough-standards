@@ -119,14 +119,24 @@ inline std::uintptr_t get_allocation_granularity() noexcept
 static const std::uintptr_t allocation_granularity_mask{~(get_allocation_granularity() - 1)};
 
 template<class T>
-struct is_unbounded_array: std::false_type {};
-template<class T>
-struct is_unbounded_array<T[]> : std::true_type {};
+struct is_unbounded_array : std::false_type
+{
+};
 
 template<class T>
-struct is_bounded_array: std::false_type {};
+struct is_unbounded_array<T[]> : std::true_type
+{
+};
+
+template<class T>
+struct is_bounded_array : std::false_type
+{
+};
+
 template<class T, std::size_t N>
-struct is_bounded_array<T[N]> : std::true_type {};
+struct is_bounded_array<T[N]> : std::true_type
+{
+};
 
 }
 
@@ -136,7 +146,9 @@ struct map_deleter
     void operator()(T* ptr) const noexcept
     {
         if(ptr)
+        {
             UnmapViewOfFile(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) & impl::allocation_granularity_mask));
+        }
     }
 };
 
@@ -146,7 +158,9 @@ struct map_deleter<T[]>
     void operator()(T* ptr) const noexcept
     {
         if(ptr)
+        {
             UnmapViewOfFile(reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) & impl::allocation_granularity_mask));
+        }
     }
 };
 
@@ -174,7 +188,9 @@ public:
 
         m_handle = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, static_cast<DWORD>(size >> 32), static_cast<DWORD>(size), std::data(native_name));
         if(!m_handle || GetLastError() == ERROR_ALREADY_EXISTS)
+        {
             throw std::runtime_error{"Failed to create shared memory. " + get_error_message()};
+        }
     }
 
     explicit shared_memory(const std::string& name, shared_memory_options options = shared_memory_options::none)
@@ -186,22 +202,25 @@ public:
 
         m_handle = OpenFileMappingW(access, FALSE, std::data(native_name));
         if(!m_handle)
+        {
             throw std::runtime_error{"Failed to open shared memory. " + get_error_message()};
+        }
     }
 
     ~shared_memory()
     {
         if(m_handle)
+        {
             CloseHandle(m_handle);
+        }
     }
 
     shared_memory(const shared_memory&) = delete;
     shared_memory& operator=(const shared_memory&) = delete;
 
     shared_memory(shared_memory&& other) noexcept
-    :m_handle{std::exchange(other.m_handle, nullptr)}
+    : m_handle{std::exchange(other.m_handle, nullptr)}
     {
-
     }
 
     shared_memory& operator=(shared_memory&& other) noexcept
@@ -224,7 +243,9 @@ public:
 
         auto* ptr{MapViewOfFile(m_handle, access, static_cast<DWORD>(aligned_offset >> 32), static_cast<DWORD>(aligned_offset), real_size)};
         if(!ptr)
+        {
             throw std::runtime_error{"Failed to map shared memory. " + get_error_message()};
+        }
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 
@@ -251,7 +272,9 @@ public:
 
         auto* ptr{MapViewOfFile(m_handle, access, static_cast<DWORD>(aligned_offset >> 32), static_cast<DWORD>(aligned_offset), real_size)};
         if(!ptr)
+        {
             throw std::runtime_error{"Failed to map shared memory. " + get_error_message()};
+        }
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 
@@ -275,13 +298,17 @@ private:
         assert(std::size(path) < 0x7FFFFFFFu && "Wrong path.");
 
         if(std::empty(path))
+        {
             return {};
+        }
 
         std::wstring out_path{};
         out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
 
         if(!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+        {
             throw std::runtime_error{"Failed to convert the path to wide."};
+        }
 
         return out_path;
     }
@@ -298,7 +325,6 @@ private:
 }
 
 #elif defined(NES_POSIX_SHARED_MEMORY)
-
 
 namespace nes
 {
@@ -360,14 +386,24 @@ inline std::uintptr_t get_allocation_granularity() noexcept
 static const std::uintptr_t allocation_granularity_mask{~(get_allocation_granularity() - 1)};
 
 template<class T>
-struct is_unbounded_array: std::false_type {};
-template<class T>
-struct is_unbounded_array<T[]> : std::true_type {};
+struct is_unbounded_array : std::false_type
+{
+};
 
 template<class T>
-struct is_bounded_array: std::false_type {};
+struct is_unbounded_array<T[]> : std::true_type
+{
+};
+
+template<class T>
+struct is_bounded_array : std::false_type
+{
+};
+
 template<class T, std::size_t N>
-struct is_bounded_array<T[N]> : std::true_type {};
+struct is_bounded_array<T[N]> : std::true_type
+{
+};
 
 }
 
@@ -425,7 +461,9 @@ public:
 
         m_handle = shm_open(std::data(native_name), O_RDWR | O_CREAT | O_TRUNC, 0660);
         if(m_handle == -1)
+        {
             throw std::runtime_error{"Failed to create shared memory. " + std::string{strerror(errno)}};
+        }
 
         if(ftruncate(m_handle, static_cast<off_t>(size)) == -1)
         {
@@ -443,22 +481,25 @@ public:
 
         m_handle = shm_open(std::data(native_name), access, 0660);
         if(m_handle == -1)
+        {
             throw std::runtime_error{"Failed to open shared memory. " + std::string{strerror(errno)}};
+        }
     }
 
     ~shared_memory()
     {
         if(m_handle != -1)
+        {
             close(m_handle);
+        }
     }
 
     shared_memory(const shared_memory&) = delete;
     shared_memory& operator=(const shared_memory&) = delete;
 
     shared_memory(shared_memory&& other) noexcept
-    :m_handle{std::exchange(other.m_handle, -1)}
+    : m_handle{std::exchange(other.m_handle, -1)}
     {
-
     }
 
     shared_memory& operator=(shared_memory&& other) noexcept
@@ -481,7 +522,9 @@ public:
 
         auto* ptr{mmap(nullptr, real_size, access, MAP_SHARED, m_handle, static_cast<off_t>(aligned_offset))};
         if(ptr == MAP_FAILED)
+        {
             throw std::runtime_error{"Failed to map shared memory. " + std::string{strerror(errno)}};
+        }
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 
@@ -508,7 +551,9 @@ public:
 
         auto* ptr{mmap(nullptr, real_size, access, MAP_SHARED, m_handle, static_cast<off_t>(aligned_offset))};
         if(ptr == MAP_FAILED)
+        {
             throw std::runtime_error{"Failed to map shared memory. " + std::string{strerror(errno)}};
+        }
 
         ptr = reinterpret_cast<void*>(reinterpret_cast<std::uintptr_t>(ptr) + (offset - aligned_offset));
 

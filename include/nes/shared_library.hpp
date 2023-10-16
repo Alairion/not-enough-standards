@@ -46,11 +46,13 @@
 #endif
 
 #ifdef NES_INLINE_NAMESPACE
-#define NES_INLINE_NAMESPACE_BEGIN inline namespace NES_INLINE_NAMESPACE {
-#define NES_INLINE_NAMESPACE_END }
+    #define NES_INLINE_NAMESPACE_BEGIN        \
+        inline namespace NES_INLINE_NAMESPACE \
+        {
+    #define NES_INLINE_NAMESPACE_END }
 #else
-#define NES_INLINE_NAMESPACE_BEGIN
-#define NES_INLINE_NAMESPACE_END
+    #define NES_INLINE_NAMESPACE_BEGIN
+    #define NES_INLINE_NAMESPACE_END
 #endif
 
 #include <string>
@@ -66,7 +68,10 @@ namespace nes
 
 NES_INLINE_NAMESPACE_BEGIN
 
-struct load_current_t{};
+struct load_current_t
+{
+};
+
 inline constexpr load_current_t load_current{};
 
 class shared_library
@@ -81,7 +86,9 @@ public:
     {
         m_handle = GetModuleHandleW(nullptr);
         if(!m_handle)
+        {
             throw std::runtime_error{"Failed to load current binary file. " + get_error_message()};
+        }
     }
 
     explicit shared_library(const std::string& path)
@@ -90,24 +97,28 @@ public:
 
         m_handle = LoadLibraryW(to_wide(path).c_str());
         if(!m_handle)
+        {
             throw std::runtime_error{"Failed to load binary file \"" + path + "\". " + get_error_message()};
+        }
+
         m_need_free = true;
     }
 
     ~shared_library()
     {
         if(m_handle && m_need_free)
+        {
             FreeLibrary(m_handle);
+        }
     }
 
     shared_library(const shared_library&) = delete;
     shared_library& operator=(const shared_library&) = delete;
 
     shared_library(shared_library&& other) noexcept
-    :m_handle{std::exchange(other.m_handle, native_handle_type{})}
-    ,m_need_free{std::exchange(other.m_need_free, false)}
+    : m_handle{std::exchange(other.m_handle, native_handle_type{})}
+    , m_need_free{std::exchange(other.m_need_free, false)}
     {
-
     }
 
     shared_library& operator=(shared_library&& other) noexcept
@@ -124,7 +135,7 @@ public:
         assert(!std::empty(symbol) && "nes::shared_library::load called with an empty symbol name.");
         assert(m_handle && "nes::shared_library::load called with invalid handle.");
 
-        return reinterpret_cast<Func>(reinterpret_cast<void(*)()>(GetProcAddress(m_handle, std::data(symbol))));
+        return reinterpret_cast<Func>(reinterpret_cast<void (*)()>(GetProcAddress(m_handle, std::data(symbol))));
     }
 
     template<typename Func, typename = std::enable_if_t<std::is_function_v<Func>>>
@@ -143,13 +154,18 @@ private:
     {
         assert(std::size(path) < 0x7FFFFFFFu && "Wrong path.");
 
-        std::transform(std::begin(path), std::end(path), std::begin(path), [](char c){return c == '/' ? '\\' : c;});
+        std::transform(std::begin(path), std::end(path), std::begin(path), [](char c)
+        {
+            return c == '/' ? '\\' : c;
+        });
 
         std::wstring out_path{};
         out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
 
-        if (!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+        if(!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+        {
             throw std::runtime_error{"Failed to convert the path to wide."};
+        }
 
         return out_path;
     }
@@ -174,7 +190,10 @@ namespace nes
 
 NES_INLINE_NAMESPACE_BEGIN
 
-struct load_current_t{};
+struct load_current_t
+{
+};
+
 inline constexpr load_current_t load_current{};
 
 class shared_library
@@ -189,7 +208,9 @@ public:
     {
         m_handle = dlopen(nullptr, RTLD_NOW);
         if(!m_handle)
+        {
             throw std::runtime_error{"Failed to load current binary file. " + std::string{dlerror()}};
+        }
     }
 
     explicit shared_library(const std::string& path)
@@ -198,22 +219,25 @@ public:
 
         m_handle = dlopen(std::data(path), RTLD_NOW);
         if(!m_handle)
+        {
             throw std::runtime_error{"Failed to load binary file \"" + path + "\". " + std::string{dlerror()}};
+        }
     }
 
     ~shared_library()
     {
         if(m_handle)
+        {
             dlclose(m_handle);
+        }
     }
 
     shared_library(const shared_library&) = delete;
     shared_library& operator=(const shared_library&) = delete;
 
     shared_library(shared_library&& other) noexcept
-    :m_handle{std::exchange(other.m_handle, native_handle_type{})}
+    : m_handle{std::exchange(other.m_handle, native_handle_type{})}
     {
-
     }
 
     shared_library& operator=(shared_library&& other) noexcept
