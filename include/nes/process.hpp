@@ -54,6 +54,14 @@
     #include "pipe.hpp"
 #endif
 
+#ifdef NES_INLINE_NAMESPACE
+#define NES_INLINE_NAMESPACE_BEGIN inline namespace NES_INLINE_NAMESPACE {
+#define NES_INLINE_NAMESPACE_END }
+#else
+#define NES_INLINE_NAMESPACE_BEGIN
+#define NES_INLINE_NAMESPACE_END
+#endif
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -67,6 +75,8 @@
 
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 class process;
 
@@ -579,6 +589,8 @@ inline bool change_working_directory(const std::string& path)
 
 }
 
+NES_INLINE_NAMESPACE_END
+
 }
 
 template<typename CharT, typename Traits>
@@ -606,6 +618,8 @@ namespace std
 
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 class process;
 
@@ -1012,6 +1026,8 @@ inline bool change_working_directory(const std::string& path)
 
 }
 
+NES_INLINE_NAMESPACE_END
+
 }
 
 template<typename CharT, typename Traits>
@@ -1034,7 +1050,6 @@ namespace std
         }
     };
 }
-
 
 #endif
 

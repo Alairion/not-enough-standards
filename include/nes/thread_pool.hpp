@@ -29,6 +29,14 @@
 #ifndef NOT_ENOUGH_STANDARDS_THREAD_POOL
 #define NOT_ENOUGH_STANDARDS_THREAD_POOL
 
+#ifdef NES_INLINE_NAMESPACE
+#define NES_INLINE_NAMESPACE_BEGIN inline namespace NES_INLINE_NAMESPACE {
+#define NES_INLINE_NAMESPACE_END }
+#else
+#define NES_INLINE_NAMESPACE_BEGIN
+#define NES_INLINE_NAMESPACE_END
+#endif
+
 #include <vector>
 #include <atomic>
 #include <thread>
@@ -43,6 +51,8 @@
 
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 namespace impl
 {
@@ -1043,6 +1053,8 @@ private:
 
     bool m_running{true};
 };
+
+NES_INLINE_NAMESPACE_END
 
 }
 

@@ -45,6 +45,14 @@
     #error "Not enough standards does not support this environment."
 #endif
 
+#ifdef NES_INLINE_NAMESPACE
+#define NES_INLINE_NAMESPACE_BEGIN inline namespace NES_INLINE_NAMESPACE {
+#define NES_INLINE_NAMESPACE_END }
+#else
+#define NES_INLINE_NAMESPACE_BEGIN
+#define NES_INLINE_NAMESPACE_END
+#endif
+
 #include <string>
 #include <algorithm>
 #include <cassert>
@@ -55,6 +63,8 @@
 
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 struct load_current_t{};
 inline constexpr load_current_t load_current{};
@@ -153,12 +163,16 @@ private:
     bool m_need_free{};
 };
 
+NES_INLINE_NAMESPACE_END
+
 }
 
 #elif defined(NES_POSIX_SHARED_LIBRARY)
 
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 struct load_current_t{};
 inline constexpr load_current_t load_current{};
@@ -231,6 +245,8 @@ public:
 private:
     native_handle_type m_handle{};
 };
+
+NES_INLINE_NAMESPACE_END
 
 }
 

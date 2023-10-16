@@ -48,6 +48,14 @@
     #error "Not enough standards does not support this environment."
 #endif
 
+#ifdef NES_INLINE_NAMESPACE
+#define NES_INLINE_NAMESPACE_BEGIN inline namespace NES_INLINE_NAMESPACE {
+#define NES_INLINE_NAMESPACE_END }
+#else
+#define NES_INLINE_NAMESPACE_BEGIN
+#define NES_INLINE_NAMESPACE_END
+#endif
+
 #include <string>
 #include <chrono>
 #include <limits>
@@ -58,6 +66,8 @@
 
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 inline constexpr const char named_semaphore_root[] = "Local\\";
 
@@ -245,12 +255,16 @@ private:
     native_handle_type m_handle{};
 };
 
+NES_INLINE_NAMESPACE_END
+
 }
 
 #elif defined(NES_POSIX_NAMED_SEMAPHORE)
 
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 inline constexpr const char named_semaphore_root[] = "/";
 
@@ -374,6 +388,8 @@ public:
 private:
     native_handle_type m_handle{};
 };
+
+NES_INLINE_NAMESPACE_END
 
 }
 

@@ -48,6 +48,14 @@
     #error "Not enough standards does not support this environment."
 #endif
 
+#ifdef NES_INLINE_NAMESPACE
+#define NES_INLINE_NAMESPACE_BEGIN inline namespace NES_INLINE_NAMESPACE {
+#define NES_INLINE_NAMESPACE_END }
+#else
+#define NES_INLINE_NAMESPACE_BEGIN
+#define NES_INLINE_NAMESPACE_END
+#endif
+
 #include <vector>
 #include <algorithm>
 #include <streambuf>
@@ -61,6 +69,8 @@
 
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 inline constexpr const char pipe_root[] = "\\\\.\\pipe\\";
 
@@ -289,7 +299,6 @@ private:
     std::ios_base::openmode m_mode{};
 };
 
-
 template<typename CharT, typename Traits = std::char_traits<CharT>>
 class basic_pipe_istream : public std::basic_istream<CharT, Traits>
 {
@@ -469,13 +478,16 @@ using pipe_streambuf = basic_pipe_streambuf<char>;
 using pipe_istream = basic_pipe_istream<char>;
 using pipe_ostream = basic_pipe_ostream<char>;
 
+NES_INLINE_NAMESPACE_END
+
 }
 
 #elif defined(NES_POSIX_PIPE)
 
-
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 inline constexpr const char pipe_root[] = "/tmp/";
 
@@ -848,6 +860,8 @@ std::pair<basic_pipe_istream<CharT, Traits>, basic_pipe_ostream<CharT, Traits>> 
 using pipe_streambuf = basic_pipe_streambuf<char>;
 using pipe_istream = basic_pipe_istream<char>;
 using pipe_ostream = basic_pipe_ostream<char>;
+
+NES_INLINE_NAMESPACE_END
 
 }
 
