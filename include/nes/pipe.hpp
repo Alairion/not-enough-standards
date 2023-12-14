@@ -56,6 +56,8 @@
 #include <memory>
 #include <cassert>
 #include <utility>
+#include <thread>
+#include <chrono>
 
 #if defined(NES_WIN32_PIPE)
 
@@ -138,15 +140,31 @@ public:
             {
                 native_mode = mode & std::ios_base::in ? PIPE_ACCESS_INBOUND : PIPE_ACCESS_OUTBOUND;
 
-                handle = CreateNamedPipeW(std::data(native_name), native_mode, PIPE_READMODE_BYTE | PIPE_WAIT, 1, buf_size, buf_size, 0, nullptr);
+                // use NOWAIT mode so that ConnectNamedPipe won't block forever
+                handle = CreateNamedPipeW(std::data(native_name), native_mode, PIPE_READMODE_BYTE | PIPE_NOWAIT, 1, buf_size, buf_size, 0, nullptr);
                 if(handle == INVALID_HANDLE_VALUE)
                     return false;
 
-                if(!ConnectNamedPipe(handle, nullptr))
+                OVERLAPPED overlap{};
+                BOOL ok = ConnectNamedPipe(handle, &overlap);
+                if(ok && GetLastError() == ERROR_IO_PENDING) // IO_PENDING is the state we want to be in
                 {
+                    if (!HasOverlappedIoCompleted(&overlap)) // that macro can only be called when in PENDING state
+                    {
+                        // wait but don't block for too long so that the calling thread remains salvageable
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));  // default internal windows timeouts are 80ms
+                        ok = HasOverlappedIoCompleted(&overlap);
+                    }
+                }
+
+                if (!ok)
+                {
+                    CancelIo(handle);
                     CloseHandle(handle);
                     return false;
                 }
+                // switch back to synchronous IO after connection is established
+                SetNamedPipeHandleState(handle, PIPE_READMODE_BYTE | PIPE_WAIT, NULL, NULL);
             }
         }
 
