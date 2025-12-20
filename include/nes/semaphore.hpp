@@ -47,6 +47,16 @@
     #error "Not enough standards does not support this environment."
 #endif
 
+#ifdef NES_INLINE_NAMESPACE
+    #define NES_INLINE_NAMESPACE_BEGIN        \
+        inline namespace NES_INLINE_NAMESPACE \
+        {
+    #define NES_INLINE_NAMESPACE_END }
+#else
+    #define NES_INLINE_NAMESPACE_BEGIN
+    #define NES_INLINE_NAMESPACE_END
+#endif
+
 #include <string>
 #include <chrono>
 #include <limits>
@@ -59,6 +69,8 @@
 namespace nes
 {
 
+NES_INLINE_NAMESPACE_BEGIN
+
 class semaphore
 {
 public:
@@ -69,13 +81,17 @@ public:
     {
         m_handle = CreateSemaphoreW(nullptr, static_cast<LONG>(initial_count), std::numeric_limits<LONG>::max(), nullptr);
         if(!m_handle)
+        {
             throw std::runtime_error{"Failed to create semaphore. " + get_error_message()};
+        }
     }
 
     ~semaphore()
     {
         if(m_handle)
+        {
             CloseHandle(m_handle);
+        }
     }
 
     semaphore(const semaphore&) = delete;
@@ -86,7 +102,9 @@ public:
     void acquire()
     {
         if(WaitForSingleObject(m_handle, INFINITE))
+        {
             throw std::runtime_error{"Failed to decrement semaphore count. " + get_error_message()};
+        }
     }
 
     bool try_acquire()
@@ -97,7 +115,9 @@ public:
     void release()
     {
         if(!ReleaseSemaphore(m_handle, 1, nullptr))
+        {
             throw std::runtime_error{"Failed to increment semaphore count. " + get_error_message()};
+        }
     }
 
     native_handle_type native_handle() const noexcept
@@ -125,7 +145,9 @@ public:
     {
         m_handle = CreateSemaphoreW(nullptr, static_cast<LONG>(initial_count), std::numeric_limits<LONG>::max(), nullptr);
         if(!m_handle)
+        {
             throw std::runtime_error{"Failed to create semaphore. " + get_error_message()};
+        }
     }
 
     ~timed_semaphore()
@@ -141,7 +163,9 @@ public:
     void acquire()
     {
         if(WaitForSingleObject(m_handle, INFINITE))
+        {
             throw std::runtime_error{"Failed to decrement semaphore count. " + get_error_message()};
+        }
     }
 
     bool try_acquire()
@@ -160,7 +184,9 @@ public:
     {
         const auto current_time{Clock::now()};
         if(time_point < current_time)
+        {
             return try_acquire();
+        }
 
         return try_acquire_for(time_point - current_time);
     }
@@ -168,7 +194,9 @@ public:
     void release()
     {
         if(!ReleaseSemaphore(m_handle, 1, nullptr))
+        {
             throw std::runtime_error{"Failed to increment semaphore count. " + get_error_message()};
+        }
     }
 
     native_handle_type native_handle() const noexcept
@@ -186,12 +214,16 @@ private:
     native_handle_type m_handle{};
 };
 
+NES_INLINE_NAMESPACE_END
+
 }
 
 #elif defined(NES_POSIX_SEMAPHORE)
 
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 class semaphore
 {
@@ -202,7 +234,9 @@ public:
     explicit semaphore(std::size_t initial_count = 0)
     {
         if(sem_init(m_handle.get(), 0, initial_count) != 0)
+        {
             throw std::runtime_error{"Failed to create semaphore. " + std::string{strerror(errno)}};
+        }
     }
 
     ~semaphore()
@@ -218,7 +252,9 @@ public:
     void acquire()
     {
         if(sem_wait(m_handle.get()) == -1)
+        {
             throw std::runtime_error{"Failed to decrement semaphore count. " + std::string{strerror(errno)}};
+        }
     }
 
     bool try_acquire()
@@ -229,7 +265,9 @@ public:
     void release()
     {
         if(sem_post(m_handle.get()) == -1)
+        {
             throw std::runtime_error{"Failed to increment semaphore count. " + std::string{strerror(errno)}};
+        }
     }
 
     native_handle_type native_handle() const noexcept
@@ -250,7 +288,9 @@ public:
     explicit timed_semaphore(std::size_t initial_count = 0)
     {
         if(sem_init(m_handle.get(), 0, initial_count) != 0)
+        {
             throw std::runtime_error{"Failed to create timed_semaphore. " + std::string{strerror(errno)}};
+        }
     }
 
     ~timed_semaphore()
@@ -266,7 +306,9 @@ public:
     void acquire()
     {
         if(sem_wait(m_handle.get()) == -1)
+        {
             throw std::runtime_error{"Failed to decrement semaphore count. " + std::string{strerror(errno)}};
+        }
     }
 
     bool try_acquire()
@@ -296,7 +338,9 @@ public:
     void release()
     {
         if(sem_post(m_handle.get()) == -1)
+        {
             throw std::runtime_error{"Failed to increment semaphore count. " + std::string{strerror(errno)}};
+        }
     }
 
     native_handle_type native_handle() const noexcept
@@ -307,6 +351,8 @@ public:
 private:
     std::unique_ptr<sem_t> m_handle{std::make_unique<sem_t>()};
 };
+
+NES_INLINE_NAMESPACE_END
 
 }
 

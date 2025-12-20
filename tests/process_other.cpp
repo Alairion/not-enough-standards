@@ -22,10 +22,10 @@ static void named_pipe()
     nes::pipe_istream is{"nes_test_pipe"};
     CHECK(is, "Failed to open pipe.");
 
-    data_type     type{};
+    data_type type{};
     std::uint32_t uint_value{};
-    double        float_value{};
-    std::string   str_value{};
+    double float_value{};
+    std::string str_value{};
     std::uint64_t str_size{};
 
     is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
@@ -68,7 +68,7 @@ static void shared_memory_bad()
 {
     nes::shared_memory memory{"nes_test_shared_memory", nes::shared_memory_options::constant};
     *memory.map<std::uint64_t>(0) = 12;
-    //theorically unreachable
+    // theorically unreachable
 }
 
 static void named_mutex()

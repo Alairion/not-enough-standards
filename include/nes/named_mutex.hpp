@@ -50,6 +50,16 @@
     #error "Not enough standards does not support this environment."
 #endif
 
+#ifdef NES_INLINE_NAMESPACE
+    #define NES_INLINE_NAMESPACE_BEGIN        \
+        inline namespace NES_INLINE_NAMESPACE \
+        {
+    #define NES_INLINE_NAMESPACE_END }
+#else
+    #define NES_INLINE_NAMESPACE_BEGIN
+    #define NES_INLINE_NAMESPACE_END
+#endif
+
 #include <string>
 #include <utility>
 #include <stdexcept>
@@ -60,6 +70,8 @@
 
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 inline constexpr const char named_mutex_root[] = "Local\\";
 
@@ -79,7 +91,9 @@ struct named_mutex_base
             {
                 handle = OpenMutexW(SYNCHRONIZE, FALSE, std::data(native_name));
                 if(!handle)
+                {
                     throw std::runtime_error{"Failed to open named mutex. " + get_error_message()};
+                }
             }
             else
             {
@@ -95,13 +109,17 @@ struct named_mutex_base
         assert(std::size(path) < 0x7FFFFFFFu && "Wrong path.");
 
         if(std::empty(path))
+        {
             return {};
+        }
 
         std::wstring out_path{};
         out_path.resize(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), nullptr, 0)));
 
         if(!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, std::data(path), static_cast<int>(std::size(path)), std::data(out_path), static_cast<int>(std::size(out_path))))
+        {
             throw std::runtime_error{"Failed to convert the path to wide."};
+        }
 
         return out_path;
     }
@@ -121,9 +139,8 @@ public:
 
 public:
     explicit named_mutex(const std::string& name)
-    :m_handle{create_or_open(name)}
+    : m_handle{create_or_open(name)}
     {
-
     }
 
     ~named_mutex()
@@ -138,8 +155,10 @@ public:
 
     void lock()
     {
-         if(WaitForSingleObject(m_handle, INFINITE) == WAIT_FAILED)
-             throw std::runtime_error{"Failed to lock mutex. " + get_error_message()};
+        if(WaitForSingleObject(m_handle, INFINITE) == WAIT_FAILED)
+        {
+            throw std::runtime_error{"Failed to lock mutex. " + get_error_message()};
+        }
     }
 
     bool try_lock()
@@ -168,9 +187,8 @@ public:
 
 public:
     explicit timed_named_mutex(const std::string& name)
-    :m_handle{create_or_open(name)}
+    : m_handle{create_or_open(name)}
     {
-
     }
 
     ~timed_named_mutex()
@@ -186,7 +204,9 @@ public:
     void lock()
     {
         if(WaitForSingleObject(m_handle, INFINITE) == WAIT_FAILED)
+        {
             throw std::runtime_error{"Failed to lock mutex. " + get_error_message()};
+        }
     }
 
     bool try_lock()
@@ -205,7 +225,9 @@ public:
     {
         const auto current_time{Clock::now()};
         if(time_point < current_time)
+        {
             return try_lock();
+        }
 
         return try_lock_for(time_point - current_time);
     }
@@ -226,21 +248,22 @@ private:
 
 class recursive_named_mutex : public named_mutex
 {
-
 };
 
 class recursive_timed_named_mutex : public timed_named_mutex
 {
-
 };
+
+NES_INLINE_NAMESPACE_END
 
 }
 
 #elif defined(NES_POSIX_NAMED_MUTEX)
 
-
 namespace nes
 {
+
+NES_INLINE_NAMESPACE_BEGIN
 
 inline constexpr const char named_mutex_root[] = "/";
 
@@ -265,7 +288,9 @@ inline mutex_base create_or_open_mutex(const std::string& name, bool recursive)
 
     int shm_handle{shm_open(std::data(native_name), O_RDWR | O_CREAT, 0660)};
     if(shm_handle == -1)
+    {
         throw std::runtime_error{"Failed to allocate space for named mutex. " + std::string{strerror(errno)}};
+    }
 
     if(ftruncate(shm_handle, sizeof(mutex_data)) == -1)
     {
@@ -294,17 +319,27 @@ inline mutex_base create_or_open_mutex(const std::string& name, bool recursive)
         };
 
         if(auto error = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED); error != 0)
+        {
             clean_and_throw("Failed to set process shared attribute of mutex. ", error);
+        }
 
         if(auto error = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST); error != 0)
+        {
             clean_and_throw("Failed to set robust attribute of mutex. ", error);
+        }
 
         if(recursive)
+        {
             if(auto error = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE); error != 0)
+            {
                 clean_and_throw("Failed to set recursive attribute of mutex. ", error);
+            }
+        }
 
         if(auto error = pthread_mutex_init(&ptr->mutex, &attr); error != 0)
+        {
             clean_and_throw("Failed to init mutex. ", error);
+        }
 
         pthread_mutexattr_destroy(&attr);
 
@@ -317,18 +352,27 @@ inline mutex_base create_or_open_mutex(const std::string& name, bool recursive)
 inline void close_mutex(mutex_base& mutex)
 {
     if(mutex.data)
+    {
         munmap(std::exchange(mutex.data, nullptr), sizeof(mutex_data));
+    }
+
     if(mutex.memory != -1)
+    {
         close(std::exchange(mutex.memory, -1));
+    }
 }
 
 inline void lock_mutex(mutex_base& mutex)
 {
     auto error{pthread_mutex_lock(&mutex.data->mutex)};
     if(error == EOWNERDEAD)
+    {
         pthread_mutex_consistent(&mutex.data->mutex);
+    }
     else if(error != 0)
-        throw std::runtime_error{"Failed to lock mutex. " +  std::string{strerror(error)}};
+    {
+        throw std::runtime_error{"Failed to lock mutex. " + std::string{strerror(error)}};
+    }
 }
 
 inline bool try_lock_mutex(mutex_base& mutex)
@@ -364,9 +408,8 @@ public:
 
 public:
     explicit named_mutex(const std::string& name)
-    :m_handle{impl::create_or_open_mutex(name, false)}
+    : m_handle{impl::create_or_open_mutex(name, false)}
     {
-
     }
 
     ~named_mutex()
@@ -410,9 +453,8 @@ public:
 
 public:
     explicit timed_named_mutex(const std::string& name)
-    :m_handle{impl::create_or_open_mutex(name, false)}
+    : m_handle{impl::create_or_open_mutex(name, false)}
     {
-
     }
 
     ~timed_named_mutex()
@@ -475,9 +517,8 @@ public:
 
 public:
     explicit recursive_named_mutex(const std::string& name)
-    :m_handle{impl::create_or_open_mutex(name, true)}
+    : m_handle{impl::create_or_open_mutex(name, true)}
     {
-
     }
 
     ~recursive_named_mutex()
@@ -521,9 +562,8 @@ public:
 
 public:
     explicit recursive_timed_named_mutex(const std::string& name)
-    :m_handle{impl::create_or_open_mutex(name, true)}
+    : m_handle{impl::create_or_open_mutex(name, true)}
     {
-
     }
 
     ~recursive_timed_named_mutex()
@@ -578,6 +618,8 @@ public:
 private:
     impl::mutex_base m_handle{};
 };
+
+NES_INLINE_NAMESPACE_END
 
 }
 

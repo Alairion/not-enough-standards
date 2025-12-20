@@ -29,6 +29,16 @@
 #ifndef NOT_ENOUGH_STANDARDS_THREAD_POOL
 #define NOT_ENOUGH_STANDARDS_THREAD_POOL
 
+#ifdef NES_INLINE_NAMESPACE
+    #define NES_INLINE_NAMESPACE_BEGIN        \
+        inline namespace NES_INLINE_NAMESPACE \
+        {
+    #define NES_INLINE_NAMESPACE_END }
+#else
+    #define NES_INLINE_NAMESPACE_BEGIN
+    #define NES_INLINE_NAMESPACE_END
+#endif
+
 #include <vector>
 #include <atomic>
 #include <thread>
@@ -36,6 +46,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <functional>
+#include <iterator>
 #include <variant>
 #include <cassert>
 #include <span>
@@ -44,6 +55,8 @@
 namespace nes
 {
 
+NES_INLINE_NAMESPACE_BEGIN
+
 namespace impl
 {
 
@@ -51,9 +64,8 @@ class checkpoint_holder_base
 {
 public:
     checkpoint_holder_base(bool barrier)
-    :m_barrier{barrier}
+    : m_barrier{barrier}
     {
-
     }
 
     virtual ~checkpoint_holder_base() = default;
@@ -81,7 +93,7 @@ class checkpoint_holder final : public checkpoint_holder_base
 {
 public:
     explicit checkpoint_holder(bool barrier, std::future<T>*& user_reference)
-    :checkpoint_holder_base{barrier}
+    : checkpoint_holder_base{barrier}
     {
         user_reference = &m_future;
     }
@@ -100,7 +112,7 @@ public:
     void reset() override
     {
         m_promise = std::promise<void>{};
-        m_future  = m_promise.get_future();
+        m_future = m_promise.get_future();
 
         m_counter.store(m_reset_value, std::memory_order_release);
     }
@@ -124,19 +136,18 @@ public:
 
 private:
     std::promise<T> m_promise{};
-    std::future<T>  m_future{};
+    std::future<T> m_future{};
     std::atomic<std::size_t> m_counter{};
     std::size_t m_reset_value{};
 };
 
-class checkpoint
+class checkpoint // checkpoints and barriers type
 {
 public:
     template<typename T>
     checkpoint(bool barrier, std::future<T>*& user_reference)
-    :m_checkpoint{std::make_unique<checkpoint_holder<T>>(barrier, user_reference)}
+    : m_checkpoint{std::make_unique<checkpoint_holder<T>>(barrier, user_reference)}
     {
-
     }
 
     ~checkpoint() = default;
@@ -181,7 +192,7 @@ private:
 
 using checkpoint_range = std::span<checkpoint_holder_base*>;
 
-class task_holder_base
+class task_holder_base // base class for type erasing in task
 {
 public:
     task_holder_base() = default;
@@ -194,6 +205,7 @@ public:
     virtual void reset() = 0;
     virtual void execute() = 0;
 
+    // checkpoints to count down once this task is done
     void set_checkpoint_range(checkpoint_range checkpoints)
     {
         m_checkpoints = checkpoints;
@@ -212,14 +224,14 @@ private:
     checkpoint_range m_checkpoints{};
 };
 
+// task holder that not returns a value, used for execute function
 template<typename Func>
 class task_holder final : public task_holder_base
 {
 public:
     task_holder(Func&& func)
-    :m_func{std::move(func)}
+    : m_func{std::move(func)}
     {
-
     }
 
     ~task_holder() = default;
@@ -236,19 +248,19 @@ public:
 
     void reset() override
     {
-
     }
 
 private:
     Func m_func;
 };
 
+// task holder that returns a value, used for invoke function
 template<typename Func, typename Ret>
 class return_task_holder final : public task_holder_base
 {
 public:
     return_task_holder(Func&& func, std::future<Ret>*& user_reference)
-    :m_func{std::move(func)}
+    : m_func{std::move(func)}
     {
         user_reference = &m_future;
     }
@@ -277,30 +289,28 @@ public:
     void reset() override
     {
         m_promise = std::promise<Ret>{};
-        m_future  = m_promise.get_future();
+        m_future = m_promise.get_future();
     }
 
 private:
     Func m_func;
     std::promise<Ret> m_promise{};
-    std::future<Ret>  m_future{};
+    std::future<Ret> m_future{};
 };
 
-class task
+class task // actual execution unit
 {
 public:
     template<typename Func>
     task(Func&& func)
-    :m_holder{std::make_unique<task_holder<Func>>(std::forward<Func>(func))}
+    : m_holder{std::make_unique<task_holder<Func>>(std::forward<Func>(func))}
     {
-
     }
 
     template<typename Func, typename Ret>
     task(Func&& func, std::future<Ret>*& user_reference)
-    :m_holder{std::make_unique<return_task_holder<Func, Ret>>(std::forward<Func>(func), user_reference)}
+    : m_holder{std::make_unique<return_task_holder<Func, Ret>>(std::forward<Func>(func), user_reference)}
     {
-
     }
 
     ~task() = default;
@@ -373,9 +383,8 @@ class fence
 {
 public:
     fence()
-    :m_holder{std::make_unique<fence_holder>()}
+    : m_holder{std::make_unique<fence_holder>()}
     {
-
     }
 
     ~fence() = default;
@@ -429,9 +438,8 @@ public:
     task_result& operator=(const task_result&) = delete;
 
     task_result(task_result&& other) noexcept
-    :m_state{std::exchange(other.m_state, nullptr)}
+    : m_state{std::exchange(other.m_state, nullptr)}
     {
-
     }
 
     task_result& operator=(task_result&& other) noexcept
@@ -485,9 +493,8 @@ public:
     task_fence& operator=(const task_fence&) = delete;
 
     task_fence(task_fence&& other) noexcept
-    :m_holder{std::exchange(other.m_holder, nullptr)}
+    : m_holder{std::exchange(other.m_holder, nullptr)}
     {
-
     }
 
     task_fence& operator=(task_fence&& other) noexcept
@@ -534,13 +541,16 @@ private:
                 }
 
                 task.reset();
-
-            }, task);
+            },
+            task);
         }
 
         m_current = std::begin(m_tasks);
     }
 
+    // bool: is the task_list done after that ?
+    // count: number of task executable at call time
+    // outputit: outputis to store the tasks
     template<typename OutputIt>
     std::pair<bool, std::size_t> next(OutputIt output)
     {
@@ -592,7 +602,7 @@ class task_builder
 {
 public:
     explicit task_builder(std::uint32_t thread_count = std::thread::hardware_concurrency())
-    :m_thread_count{thread_count != 0 ? thread_count : 8}
+    : m_thread_count{thread_count != 0 ? thread_count : 8}
     {
         m_tasks.reserve(32);
     }
@@ -606,24 +616,26 @@ public:
     template<typename Func, typename... Args>
     void execute(Func&& func, Args&&... args)
     {
-        push_task([func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+        push_task([func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
         {
             std::invoke(func, args...);
         });
     }
 
     template<typename Func, typename... Args>
-    [[nodiscard]] auto invoke(Func&& func, Args&&... args)
+    [[nodiscard("Use execute instead of invoke when the returned future is not needed")]] 
+    auto invoke(Func&& func, Args&&... args)
     {
         using func_return_type = std::invoke_result_t<Func, Args...>;
         using result_type = task_result<func_return_type>;
 
         result_type output{};
 
-        push_task([func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+        push_task([func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
         {
             return std::invoke(func, args...);
-        }, output.m_state);
+        },
+        output.m_state);
 
         return output;
     }
@@ -631,13 +643,20 @@ public:
     template<typename Func, typename... Args>
     void dispatch(std::uint32_t x, std::uint32_t y, std::uint32_t z, Func&& func, Args&&... args)
     {
+        dispatch(x, y, z, std::numeric_limits<std::uint32_t>::max(), std::forward<Func>(func), std::forward<Args>(args)...);
+    }
+
+    template<typename Func, typename... Args>
+    void dispatch(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t max_invoke_per_task, Func&& func, Args&&... args)
+    {
         assert(x != 0 && "nes::task_builder::dispatch called with x == 0");
         assert(y != 0 && "nes::task_builder::dispatch called with y == 0");
         assert(z != 0 && "nes::task_builder::dispatch called with z == 0");
+        assert(max_invoke_per_task != 0 && "nes::task_builder::dispatch called with max_invoke_per_task == 0");
 
         const std::uint64_t total_calls{static_cast<std::uint64_t>(x) * y * z};
 
-        if(total_calls < m_thread_count)
+        if(total_calls < m_thread_count) // one invocation per thread
         {
             for(std::uint32_t current_z{}; current_z < z; ++current_z)
             {
@@ -645,7 +664,7 @@ public:
                 {
                     for(std::uint32_t current_x{}; current_x < x; ++current_x)
                     {
-                        push_task([current_x, current_y, current_z, func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+                        push_task([current_x, current_y, current_z, func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
                         {
                             std::invoke(func, current_x, current_y, current_z, args...);
                         });
@@ -653,7 +672,7 @@ public:
                 }
             }
         }
-        else
+        else if(total_calls <= static_cast<std::uint64_t>(max_invoke_per_task) * m_thread_count) // max_invoke_per_task or less invocations per thread
         {
             const std::uint64_t calls_per_thread{total_calls / m_thread_count};
 
@@ -670,7 +689,29 @@ public:
                     --remainder;
                 }
 
-                push_task([calls, count, x, y, z_factor = (x * y), func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+                push_task([calls, count, x, y, z_factor = (x * y), func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
+                {
+                    for(std::uint64_t i{calls}; i < calls + count; ++i)
+                    {
+                        const auto current_x{static_cast<std::uint32_t>(i % x)};
+                        const auto current_y{static_cast<std::uint32_t>((i / x) % y)};
+                        const auto current_z{static_cast<std::uint32_t>(i / z_factor)};
+
+                        std::invoke(func, current_x, current_y, current_z, args...);
+                    }
+                });
+
+                calls += count;
+            }
+        }
+        else // create tasks that perform max_invoke_per_task invocations each, until we reach the total number of invocations
+        {
+            std::uint64_t calls{};
+            while(calls < total_calls)
+            {
+                std::uint64_t count{std::min(static_cast<std::size_t>(max_invoke_per_task), total_calls - calls)};
+
+                push_task([calls, count, x, y, z_factor = (x * y), func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
                 {
                     for(std::uint64_t i{calls}; i < calls + count; ++i)
                     {
@@ -713,13 +754,13 @@ public:
 
     task_list build()
     {
-        barrier(); //this barrier is used by the pool to know when all the tasks are done and the list can be returned to user
+        barrier(); // this barrier is used by the pool to know when all the tasks are done and the list can be returned to user
 
         task_list output{};
         output.m_tasks.reserve(std::size(m_tasks));
         output.m_checkpoints.reserve(count_checkpoints());
 
-        auto begin  {std::begin(m_tasks)};
+        auto begin{std::begin(m_tasks)};
         auto current{begin};
 
         std::size_t checkpoints_begin{};
@@ -818,48 +859,7 @@ public:
     {
         const auto worker_base = [this]()
         {
-            while(true)
-            {
-                std::unique_lock lock{m_mutex};
-                m_worker_condition.wait(lock, [this]
-                {
-                    if(std::empty(m_tasks) && !std::empty(m_task_lists))
-                    {
-                        const auto notify_count{update_task_lists()};
-
-                        for(std::size_t i{}; i < std::min(notify_count, std::size(m_threads)); ++i)
-                        {
-                            m_worker_condition.notify_one();
-                        }
-                    }
-
-                    if(std::empty(m_tasks) && std::empty(m_task_lists))
-                    {
-                        m_wait_condition.notify_all();
-                    }
-
-                    return !m_running || !std::empty(m_tasks);
-                });
-
-                if(!m_running)
-                {
-                    break;
-                }
-
-                auto task{std::move(m_tasks.front())};
-                m_tasks.erase(std::begin(m_tasks));
-
-                lock.unlock();
-
-                if(std::holds_alternative<impl::task>(task))
-                {
-                    std::get<impl::task>(task).execute();
-                }
-                else
-                {
-                    std::get<impl::task_holder_base*>(task)->execute();
-                }
-            }
+            worker_main();
         };
 
         thread_count = thread_count != 0 ? thread_count : 8;
@@ -905,7 +905,7 @@ public:
     template<typename Func, typename... Args>
     void execute(Func&& func, Args&&... args)
     {
-        push_impl([func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+        push_impl([func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
         {
             std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
         });
@@ -914,18 +914,19 @@ public:
     }
 
     template<typename Func, typename... Args>
+    [[nodiscard("Use execute instead of invoke when the returned future is not needed")]]
     auto invoke(Func&& func, Args&&... args)
     {
-        using return_type  = std::invoke_result_t<Func, Args...>;
+        using return_type = std::invoke_result_t<Func, Args...>;
         using promise_type = std::promise<return_type>;
-        using future_type  = std::future<return_type>;
+        using future_type = std::future<return_type>;
 
         promise_type promise{};
-        future_type  future {promise.get_future()};
+        future_type future{promise.get_future()};
 
         if constexpr(std::is_same_v<return_type, void>)
         {
-            push_impl([promise = std::move(promise), func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+            push_impl([promise = std::move(promise), func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
             {
                 std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
                 promise.set_value();
@@ -933,7 +934,7 @@ public:
         }
         else
         {
-            push_impl([promise = std::move(promise), func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+            push_impl([promise = std::move(promise), func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
             {
                 promise.set_value(std::invoke(std::forward<Func>(func), std::forward<Args>(args)...));
             });
@@ -944,7 +945,7 @@ public:
         return future;
     }
 
-    std::future<task_list> push(task_list list)
+    std::future<task_list> push(task_list&& list)
     {
         list.reset(m_worker_condition);
 
@@ -982,6 +983,52 @@ public:
     }
 
 private:
+    void worker_main()
+    {
+        while(true)
+        {
+            std::unique_lock lock{m_mutex};
+            m_worker_condition.wait(lock, [this]
+            {
+                if(std::empty(m_tasks) && !std::empty(m_task_lists))
+                {
+                    const auto notify_count{update_task_lists()};
+
+                    for(std::size_t i{}; i < std::min(notify_count, std::size(m_threads)); ++i)
+                    {
+                        m_worker_condition.notify_one();
+                    }
+                }
+
+                if(std::empty(m_tasks) && std::empty(m_task_lists))
+                {
+                    m_wait_condition.notify_all();
+                }
+
+                return !m_running || !std::empty(m_tasks);
+            });
+
+            if(!m_running)
+            {
+                break;
+            }
+
+            auto task{std::move(m_tasks.front())};
+            m_tasks.erase(std::begin(m_tasks));
+
+            lock.unlock();
+
+            if(std::holds_alternative<impl::task>(task))
+            {
+                std::get<impl::task>(task).execute();
+            }
+            else
+            {
+                std::get<impl::task_holder_base*>(task)->execute();
+            }
+        }
+    }
+
     template<typename Func>
     void push_impl(Func&& func)
     {
@@ -1043,6 +1090,8 @@ private:
 
     bool m_running{true};
 };
+
+NES_INLINE_NAMESPACE_END
 
 }
 
