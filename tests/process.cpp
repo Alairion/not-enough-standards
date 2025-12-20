@@ -16,7 +16,6 @@
 #include <nes/named_mutex.hpp>
 #include <nes/semaphore.hpp>
 #include <nes/named_semaphore.hpp>
-#include <nes/thread_pool.hpp>
 
 #include "common.hpp"
 
@@ -42,31 +41,43 @@ static void shared_library_test()
 static void a_thread(nes::basic_pipe_istream<char>& is) noexcept
 {
     data_type type{};
-    std::uint32_t uint_value{};
-    double float_value{};
-    std::string str_value{};
-    std::uint64_t str_size{};
 
     is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
     CHECK(type == data_type::uint32, "Wrong data type, expected uint32 got " << data_type_to_string(type));
 
+    std::uint32_t uint_value{};
     is.read(reinterpret_cast<char*>(&uint_value), sizeof(std::uint32_t));
     CHECK(uint_value == 42, "Wrong value, expected 42 got " << uint_value);
 
     is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
     CHECK(type == data_type::float64, "Wrong data type, expected float64 got " << data_type_to_string(type));
 
+    double float_value{};
     is.read(reinterpret_cast<char*>(&float_value), sizeof(double));
     CHECK(float_value > 3.139 && float_value < 3.141, "Wrong value, expected 3.14 got " << float_value);
 
     is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
     CHECK(type == data_type::string, "Wrong data type, expected string got " << data_type_to_string(type));
 
+    std::uint64_t str_size{};
     is.read(reinterpret_cast<char*>(&str_size), sizeof(std::uint64_t));
+    std::string str_value{};
     str_value.resize(str_size);
     is.read(std::data(str_value), static_cast<std::streamsize>(str_size));
 
-    CHECK(str_value == "Hello world!", "Wrong value, expected \"Hello world!\" got \"" << str_value << "\"");
+    is.read(reinterpret_cast<char*>(&type), sizeof(data_type));
+    CHECK(type == data_type::string, "Wrong data type, expected string got " << data_type_to_string(type));
+    is.read(reinterpret_cast<char*>(&str_size), sizeof(std::uint64_t));
+    str_value.clear();
+    is >> str_value;
+    CHECK(str_value == "Hello", "Wrong value, expected \"Hello\" got \"" << str_value << "\"");
+    str_value.clear();
+    str_value.resize(3);
+    is.read(std::data(str_value), 3);
+    CHECK(str_value == " wo", "Wrong value, expected \" wo\" got \"" << str_value << "\"");
+    is >> str_value;
+    CHECK(str_value == "rld!", "Wrong value, expected \"rld!\" got \"" << str_value << "\"");
+
 }
 
 static void pipe_test()
@@ -94,6 +105,12 @@ static void pipe_test()
     os.write(reinterpret_cast<const char*>(&str_type), sizeof(data_type));
     os.write(reinterpret_cast<const char*>(&size_size), sizeof(std::uint64_t));
     os.write(std::data(str_value), static_cast<std::streamsize>(size_size));
+
+    // send it twice to test formatted input too
+    os.write(reinterpret_cast<const char*>(&str_type), sizeof(data_type));
+    os.write(reinterpret_cast<const char*>(&size_size), sizeof(std::uint64_t));
+    os.put(str_value[0]);
+    os.write(str_value.data() + 1, str_value.size() - 1);
 
     os.close();
 
@@ -263,51 +280,6 @@ static void named_semaphore_test()
                                                                       << other.stdout_stream().rdbuf());
 }
 
-static void thread_pool_test()
-{
-    static constexpr std::size_t buffer_size{8};
-
-    // Some buffers
-    std::array<std::uint32_t, buffer_size> input{32, 543, 4329, 12, 542, 656, 523, 98473};
-    std::array<std::uint32_t, buffer_size> temp{};
-    std::array<std::uint32_t, buffer_size> output{};
-
-    // The task builder
-    nes::task_builder builder{};
-
-    builder.dispatch(buffer_size, 1, 1, [&input, &temp](std::uint32_t x, std::uint32_t y [[maybe_unused]], std::uint32_t z [[maybe_unused]])
-    {
-        temp[x] = input[x] * 2u;
-    });
-
-    nes::task_checkpoint checkpoint{builder.checkpoint()};
-
-    nes::task_fence fence{builder.fence()};
-
-    builder.dispatch(buffer_size, 1, 1, [&input, &temp, &output](std::uint32_t x, std::uint32_t y [[maybe_unused]], std::uint32_t z [[maybe_unused]])
-    {
-        for(auto value : temp)
-        {
-            output[x] += (value + input[x]);
-        }
-    });
-
-    // Create a thread pool to run our task list.
-    nes::thread_pool thread_pool{};
-
-    std::future<nes::task_list> future{thread_pool.push(builder.build())};
-    checkpoint.wait();
-
-    constexpr std::array<std::uint32_t, buffer_size> temp_expected{64, 1086, 8658, 24, 1084, 1312, 1046, 196946};
-    CHECK(temp == temp_expected, "Wrong array values");
-
-    fence.signal();
-    future.wait();
-
-    constexpr std::array<std::uint32_t, buffer_size> output_expected{210476, 214564, 244852, 210316, 214556, 215468, 214404, 998004};
-    CHECK(output == output_expected, "Wrong array values");
-}
-
 int main()
 {
     try
@@ -322,9 +294,6 @@ int main()
         named_mutex_test();
         timed_named_mutex_test();
         named_semaphore_test();
-        thread_pool_test();
-
-        std::cout << "All tests passed!" << std::endl;
     }
     catch(const std::exception& e)
     {

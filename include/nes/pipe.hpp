@@ -246,6 +246,7 @@ protected:
     virtual std::streamsize xsputn(const char_type* s, std::streamsize count) override
     {
         assert(m_mode & std::ios_base::out && "Write operation on a read only pipe.");
+        sync(); // empty putarea before performing a write
 
         DWORD written{};
         if(!WriteFile(m_handle, reinterpret_cast<const CHAR*>(s), static_cast<DWORD>(count) * sizeof(char_type), &written, nullptr))
@@ -262,13 +263,13 @@ protected:
 
         if(parent_type::gptr() == parent_type::egptr())
         {
-            DWORD readed{};
-            if(!ReadFile(m_handle, reinterpret_cast<CHAR*>(std::data(m_buffer)), static_cast<DWORD>(buf_size * sizeof(char_type)), &readed, nullptr) || readed == 0)
+            DWORD read{};
+            if(!ReadFile(m_handle, reinterpret_cast<CHAR*>(std::data(m_buffer)), static_cast<DWORD>(buf_size * sizeof(char_type)), &read, nullptr) || read == 0)
             {
                 return traits_type::eof();
             }
 
-            parent_type::setg(std::data(m_buffer), std::data(m_buffer), std::data(m_buffer) + (readed / sizeof(char_type)));
+            parent_type::setg(std::data(m_buffer), std::data(m_buffer), std::data(m_buffer) + (read / sizeof(char_type)));
         }
 
         return traits_type::to_int_type(*parent_type::gptr());
@@ -278,13 +279,37 @@ protected:
     {
         assert(m_mode & std::ios_base::in && "Read operation on a write only pipe.");
 
-        DWORD readed{};
-        if(!ReadFile(m_handle, reinterpret_cast<CHAR*>(s), static_cast<DWORD>(count) * sizeof(char_type), &readed, nullptr))
+        // to support mixing formatted and unformatted input, we have to flush the get buffer
+        const std::ptrdiff_t available = parent_type::egptr() - parent_type::gptr();
+        if(available > 0)
+        {
+            std::copy_n(parent_type::gptr(), (std::min)(available, count), s);
+            // if we still have buffered input update gptr
+            if(available > count)
+            {
+                parent_type::setg(parent_type::eback(), parent_type::gptr() + count, parent_type::egptr());
+                return count;
+            }
+
+            // resets get buffer, this will force an underflow on next formatted input
+            parent_type::setg(nullptr, nullptr, nullptr);
+            if(count == available)
+            {
+                return count;
+            }
+
+            // perform a read to fulfill the requested count if possible
+            count -= available;
+            s += available;
+        }
+
+        DWORD read{};
+        if(!ReadFile(m_handle, reinterpret_cast<CHAR*>(s), static_cast<DWORD>(count) * sizeof(char_type), &read, nullptr))
         {
             return 0;
         }
 
-        return static_cast<std::streamsize>(readed / sizeof(char_type));
+        return static_cast<std::streamsize>(read / sizeof(char_type)) + available;
     }
 
 private:
@@ -674,6 +699,7 @@ protected:
     virtual std::streamsize xsputn(const char_type* s, std::streamsize count) override
     {
         assert(m_mode & std::ios_base::out && "Write operation on a read only pipe.");
+        sync(); // empty putarea before performing a write
 
         const auto written = write(m_handle, reinterpret_cast<const char*>(s), count * sizeof(char_type));
         if(written < 0)
@@ -690,13 +716,13 @@ protected:
 
         if(parent_type::gptr() == parent_type::egptr())
         {
-            const auto readed = read(m_handle, reinterpret_cast<char*>(std::data(m_buffer)), buf_size * sizeof(char_type));
-            if(readed <= 0)
+            const auto _read = read(m_handle, reinterpret_cast<char*>(std::data(m_buffer)), buf_size * sizeof(char_type));
+            if(_read <= 0)
             {
                 return traits_type::eof();
             }
 
-            parent_type::setg(std::data(m_buffer), std::data(m_buffer), std::data(m_buffer) + (readed / sizeof(char_type)));
+            parent_type::setg(std::data(m_buffer), std::data(m_buffer), std::data(m_buffer) + (_read / sizeof(char_type)));
         }
 
         return traits_type::to_int_type(*parent_type::gptr());
@@ -706,13 +732,37 @@ protected:
     {
         assert(m_mode & std::ios_base::in && "Read operation on a write only pipe.");
 
-        const auto readed = read(m_handle, reinterpret_cast<char*>(s), count * sizeof(char_type));
-        if(readed < 0)
+        // to support mixing formatted and unformatted input, we have to flush the get buffer
+        const std::ptrdiff_t available = parent_type::egptr() - parent_type::gptr();
+        if(available > 0)
+        {
+            std::copy_n(parent_type::gptr(), (std::min)(available, count), s);
+            // if we still have buffered input update gptr
+            if(available > count)
+            {
+                parent_type::setg(parent_type::eback(), parent_type::gptr() + count, parent_type::egptr());
+                return count;
+            }
+
+            // resets get buffer, this will force an underflow on next formatted input
+            parent_type::setg(nullptr, nullptr, nullptr);
+            if(count == available)
+            {
+                return count;
+            }
+
+            // perform a read to fulfill the requested count if possible
+            count -= available;
+            s += available;
+        }
+
+        const auto _read = read(m_handle, reinterpret_cast<char*>(s), count * sizeof(char_type));
+        if(_read < 0)
         {
             return 0;
         }
 
-        return static_cast<std::streamsize>(readed / sizeof(char_type));
+        return static_cast<std::streamsize>(_read / sizeof(char_type)) + available;
     }
 
 private:

@@ -46,6 +46,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <functional>
+#include <iterator>
 #include <variant>
 #include <cassert>
 #include <span>
@@ -547,6 +548,9 @@ private:
         m_current = std::begin(m_tasks);
     }
 
+    // bool: is the task_list done after that ?
+    // count: number of task executable at call time
+    // outputit: outputis to store the tasks
     template<typename OutputIt>
     std::pair<bool, std::size_t> next(OutputIt output)
     {
@@ -619,7 +623,8 @@ public:
     }
 
     template<typename Func, typename... Args>
-    [[nodiscard]] auto invoke(Func&& func, Args&&... args)
+    [[nodiscard("Use execute instead of invoke when the returned future is not needed")]] 
+    auto invoke(Func&& func, Args&&... args)
     {
         using func_return_type = std::invoke_result_t<Func, Args...>;
         using result_type = task_result<func_return_type>;
@@ -638,13 +643,20 @@ public:
     template<typename Func, typename... Args>
     void dispatch(std::uint32_t x, std::uint32_t y, std::uint32_t z, Func&& func, Args&&... args)
     {
+        dispatch(x, y, z, std::numeric_limits<std::uint32_t>::max(), std::forward<Func>(func), std::forward<Args>(args)...);
+    }
+
+    template<typename Func, typename... Args>
+    void dispatch(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t max_invoke_per_task, Func&& func, Args&&... args)
+    {
         assert(x != 0 && "nes::task_builder::dispatch called with x == 0");
         assert(y != 0 && "nes::task_builder::dispatch called with y == 0");
         assert(z != 0 && "nes::task_builder::dispatch called with z == 0");
+        assert(max_invoke_per_task != 0 && "nes::task_builder::dispatch called with max_invoke_per_task == 0");
 
         const std::uint64_t total_calls{static_cast<std::uint64_t>(x) * y * z};
 
-        if(total_calls < m_thread_count)
+        if(total_calls < m_thread_count) // one invocation per thread
         {
             for(std::uint32_t current_z{}; current_z < z; ++current_z)
             {
@@ -660,7 +672,7 @@ public:
                 }
             }
         }
-        else
+        else if(total_calls <= static_cast<std::uint64_t>(max_invoke_per_task) * m_thread_count) // max_invoke_per_task or less invocations per thread
         {
             const std::uint64_t calls_per_thread{total_calls / m_thread_count};
 
@@ -676,6 +688,28 @@ public:
                     ++count;
                     --remainder;
                 }
+
+                push_task([calls, count, x, y, z_factor = (x * y), func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
+                {
+                    for(std::uint64_t i{calls}; i < calls + count; ++i)
+                    {
+                        const auto current_x{static_cast<std::uint32_t>(i % x)};
+                        const auto current_y{static_cast<std::uint32_t>((i / x) % y)};
+                        const auto current_z{static_cast<std::uint32_t>(i / z_factor)};
+
+                        std::invoke(func, current_x, current_y, current_z, args...);
+                    }
+                });
+
+                calls += count;
+            }
+        }
+        else // create tasks that perform max_invoke_per_task invocations each, until we reach the total number of invocations
+        {
+            std::uint64_t calls{};
+            while(calls < total_calls)
+            {
+                std::uint64_t count{std::min(static_cast<std::size_t>(max_invoke_per_task), total_calls - calls)};
 
                 push_task([calls, count, x, y, z_factor = (x * y), func = std::forward<Func>(func), ... args = std::forward<Args>(args)]() mutable
                 {
@@ -825,48 +859,7 @@ public:
     {
         const auto worker_base = [this]()
         {
-            while(true)
-            {
-                std::unique_lock lock{m_mutex};
-                m_worker_condition.wait(lock, [this]
-                {
-                    if(std::empty(m_tasks) && !std::empty(m_task_lists))
-                    {
-                        const auto notify_count{update_task_lists()};
-
-                        for(std::size_t i{}; i < std::min(notify_count, std::size(m_threads)); ++i)
-                        {
-                            m_worker_condition.notify_one();
-                        }
-                    }
-
-                    if(std::empty(m_tasks) && std::empty(m_task_lists))
-                    {
-                        m_wait_condition.notify_all();
-                    }
-
-                    return !m_running || !std::empty(m_tasks);
-                });
-
-                if(!m_running)
-                {
-                    break;
-                }
-
-                auto task{std::move(m_tasks.front())};
-                m_tasks.erase(std::begin(m_tasks));
-
-                lock.unlock();
-
-                if(std::holds_alternative<impl::task>(task))
-                {
-                    std::get<impl::task>(task).execute();
-                }
-                else
-                {
-                    std::get<impl::task_holder_base*>(task)->execute();
-                }
-            }
+            worker_main();
         };
 
         thread_count = thread_count != 0 ? thread_count : 8;
@@ -921,6 +914,7 @@ public:
     }
 
     template<typename Func, typename... Args>
+    [[nodiscard("Use execute instead of invoke when the returned future is not needed")]]
     auto invoke(Func&& func, Args&&... args)
     {
         using return_type = std::invoke_result_t<Func, Args...>;
@@ -951,7 +945,7 @@ public:
         return future;
     }
 
-    std::future<task_list> push(task_list list)
+    std::future<task_list> push(task_list&& list)
     {
         list.reset(m_worker_condition);
 
@@ -989,6 +983,52 @@ public:
     }
 
 private:
+    void worker_main()
+    {
+        while(true)
+        {
+            std::unique_lock lock{m_mutex};
+            m_worker_condition.wait(lock, [this]
+            {
+                if(std::empty(m_tasks) && !std::empty(m_task_lists))
+                {
+                    const auto notify_count{update_task_lists()};
+
+                    for(std::size_t i{}; i < std::min(notify_count, std::size(m_threads)); ++i)
+                    {
+                        m_worker_condition.notify_one();
+                    }
+                }
+
+                if(std::empty(m_tasks) && std::empty(m_task_lists))
+                {
+                    m_wait_condition.notify_all();
+                }
+
+                return !m_running || !std::empty(m_tasks);
+            });
+
+            if(!m_running)
+            {
+                break;
+            }
+
+            auto task{std::move(m_tasks.front())};
+            m_tasks.erase(std::begin(m_tasks));
+
+            lock.unlock();
+
+            if(std::holds_alternative<impl::task>(task))
+            {
+                std::get<impl::task>(task).execute();
+            }
+            else
+            {
+                std::get<impl::task_holder_base*>(task)->execute();
+            }
+        }
+    }
+
     template<typename Func>
     void push_impl(Func&& func)
     {
