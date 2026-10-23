@@ -224,17 +224,12 @@ protected:
     {
         assert(m_mode & std::ios_base::out && "Write operation on a read only pipe.");
 
-        if(traits_type::eq_int_type(c, traits_type::eof()))
+        if(sync() != 0)
         {
-            DWORD written{};
-            if(!WriteFile(m_handle, reinterpret_cast<const CHAR*>(std::data(m_buffer)), static_cast<DWORD>(buf_size) * sizeof(char_type), &written, nullptr))
-            {
-                return traits_type::eof();
-            }
-
-            parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
+            return traits_type::eof();
         }
-        else
+
+        if(!traits_type::eq_int_type(c, traits_type::eof()))
         {
             *parent_type::pptr() = traits_type::to_char_type(c);
             parent_type::pbump(1);
@@ -678,16 +673,12 @@ protected:
     {
         assert(m_mode & std::ios_base::out && "Write operation on a read only pipe.");
 
-        if(traits_type::eq_int_type(c, traits_type::eof()))
+        if(sync() != 0)
         {
-            if(write(m_handle, reinterpret_cast<const char*>(std::data(m_buffer)), std::size(m_buffer) * sizeof(char_type)))
-            {
-                return traits_type::eof();
-            }
-
-            parent_type::setp(std::data(m_buffer), std::data(m_buffer) + buf_size);
+            return traits_type::eof();
         }
-        else
+
+        if(!traits_type::eq_int_type(c, traits_type::eof()))
         {
             *parent_type::pptr() = traits_type::to_char_type(c);
             parent_type::pbump(1);

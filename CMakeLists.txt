@@ -41,11 +41,15 @@ if(BUILD_TESTING OR NOT_ENOUGH_STANDARDS_BUILD_TESTS)
     add_executable(NotEnoughStandardsTestOther tests/common.hpp tests/process_other.cpp)
     target_link_libraries(NotEnoughStandardsTestOther PRIVATE NotEnoughStandards)
 
+    add_executable(NotEnoughStandardsPipeBufferTest tests/pipe_buffer_test.cpp)
+    target_link_libraries(NotEnoughStandardsPipeBufferTest PRIVATE NotEnoughStandards)
+
     add_library(NotEnoughStandardsTestLib SHARED tests/common.hpp tests/library.cpp)
     set_target_properties(NotEnoughStandardsTestLib PROPERTIES PREFIX "")
     target_link_libraries(NotEnoughStandardsTestLib PRIVATE NotEnoughStandards)
 
     add_test(NAME NotEnoughStandardsTest COMMAND NotEnoughStandardsTest)
+    add_test(NAME NotEnoughStandardsPipeBufferTest COMMAND NotEnoughStandardsPipeBufferTest)
     if(multi_config)
         set_tests_properties(NotEnoughStandardsTest PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>)
     endif()
